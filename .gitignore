@@ -11,3 +11,6 @@
 *.maintenance.lock
 .env
 .env.*
+/.agents/
+/.codex/
+/.aws/
