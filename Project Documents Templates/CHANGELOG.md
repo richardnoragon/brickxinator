@@ -6,6 +6,9 @@ No application version has been released.
 
 ### Alpha source candidate
 
+Implementation: [c1551b5](https://github.com/richardnoragon/brickxinator/commit/c1551b5).
+Review: [draft PR #1](https://github.com/richardnoragon/brickxinator/pull/1).
+
 - Rust inventory ledger, purchases, catalog/storage, set verification, lot
   classification, stock adjustments, exact shipping/costing and search.
 - Local Axum/Svelte application with managed files, reviewed corrections,

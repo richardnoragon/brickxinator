@@ -4,7 +4,7 @@ Offline brick inventory and collection management for LEGO, BlueBrixx and
 compatible systems. Copyright (C) 2026 Richard. GPL-3.0-or-later; see [COPYING](COPYING).
 
 The `0.1.0-alpha.1` implementation is being prepared for review. **No alpha release
-or tag has been published.** See [completion evidence](ALPHA_STATUS.md),
+or tag has been published.** Review [draft PR #1](https://github.com/richardnoragon/brickxinator/pull/1). See [completion evidence](ALPHA_STATUS.md),
 [source installation](INSTALL.md) and the [project specifications](Project%20Documents%20Templates/TOC.md).
 The public repository is [richardnoragon/brickxinator](https://github.com/richardnoragon/brickxinator).
 

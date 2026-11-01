@@ -1,7 +1,8 @@
 # Alpha completion audit
 
 Target: 0.1.0-alpha.1. This is an implementation candidate, not a released tag.
-Evidence recorded on 2026-11-01 using disposable data.
+Evidence recorded on 2026-11-01 using disposable data. Implementation commit:
+[`c1551b5`](https://github.com/richardnoragon/brickxinator/commit/c1551b5).
 
 - [x] Rust inventory, purchase, settings, catalog, verification, stock, search and costing foundation.
 - [x] Loopback Axum API, Host/Origin/token defenses, local-user audit context and exact large integer reads.
@@ -20,7 +21,7 @@ Evidence recorded on 2026-11-01 using disposable data.
 - [x] Versioned native JSON/assets exchange, conflict/no-op import handling, CSV and browser downloads.
 - [x] Source build, Rust formatting/clippy, frontend formatting/type checks and production asset build.
 - [x] Dependency license inventory and advisory review: see THIRD_PARTY.md.
-- [ ] Source branch published and draft review prepared.
+- [x] Source branch published and [draft PR #1](https://github.com/richardnoragon/brickxinator/pull/1) prepared.
 - [ ] Richard's supported-desktop candidate review and release approval.
 - [ ] Private security-reporting and community enforcement destinations finalized before release; security reporting is explicitly deferred.
 
