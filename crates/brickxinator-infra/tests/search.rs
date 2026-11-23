@@ -344,6 +344,7 @@ fn definition(store: &mut Store, key: &str, manufacturer: Id, number: &str, name
                     description: Some("Synthetic brick catalog".into()),
                     release_year: None,
                     theme: None,
+                    theme_id: None,
                     stated_piece_count: None,
                 },
             },
@@ -418,9 +419,12 @@ fn purchase(
             body: PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     seller: Some("Example Seller".into()),
                     shipping_cents: Some(0),
                     lines: vec![InvoiceLine {
+                        volume_ml: None,
                         source_url: None,
                         notes: String::new(),
                         id: Id::new(),
@@ -1210,8 +1214,9 @@ fn set_contents_follow_parent_storage_and_assembly_in_search() {
             ..Search::default()
         })
         .unwrap();
-    assert_eq!(moved.total_matches, 1);
-    assert_eq!(moved.totals.all.available_pieces.known_sum, 7);
+    // Disassembly does not release the copy's assignment under D-146.
+    assert_eq!(moved.total_matches, 0);
+    assert_eq!(moved.totals.all.available_pieces.known_sum, 0);
 }
 
 #[test]

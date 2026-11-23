@@ -149,8 +149,25 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/api/v1/bootstrap", get(bootstrap))
         .route("/api/v1/state", get(state_view))
+        .route("/api/v1/projects", get(project_view).post(project_command))
+        .route("/api/v1/physical",get(physical_view).post(physical_command))
+        .route("/api/v1/physical/preview",post(physical_preview))
+        .route("/api/v1/projects/model-preview", post(model_preview))
         .route("/api/v1/inventory", post(search))
         .route("/api/v1/commands/{kind}", post(command))
+        .route("/api/v1/fulfilment/{id}", get(fulfilment_view))
+        .route("/api/v1/cost-rollups",get(cost_rollup_view))
+        .route("/api/v1/enrichments",get(enrichment_view).post(enrichment_apply))
+        .route("/api/v1/enrichments/preview",post(enrichment_preview))
+        .route("/api/v1/child-costs/{id}",get(child_cost_view))
+        .route("/api/v1/child-costs/preview",post(child_cost_preview))
+        .route("/api/v1/child-costs",post(child_cost_command))
+        .route("/api/v1/fulfilment/preview", post(fulfilment_preview))
+        .route("/api/v1/integrations",get(integration_view).post(integration_apply))
+        .route("/api/v1/integrations/parse",post(integration_parse))
+        .route("/api/v1/integrations/preview",post(integration_preview))
+        .route("/api/v1/integrations/wanted-xml",post(wanted_xml))
+        .route("/api/v1/fulfilment", post(fulfilment_command))
         .route(
             "/api/v1/purchases/{id}/correction-preview",
             post(correction_preview),
@@ -318,14 +335,14 @@ async fn state_view(State(state): State<AppState>) -> Result<Json<Value>, ApiErr
         let copies=ledger.set_copies().values().map(|copy| {
             let source=purchases.iter().find(|purchase|purchase.draft.lines.iter().any(|line|line.id==copy.invoice_line_id));
             let archived=source.is_some_and(|purchase|purchase.archived) || profiles.get(&brickxinator_core::profiles::Target::SetCopy(copy.id)).is_some_and(|p|p.links.archived);
-            json!({"id":copy.id,"label":ledger.copy_label(copy.id),"assembly":ledger.assembly(copy.id),"archived":archived})
+            json!({"id":copy.id,"label":ledger.copy_label(copy.id),"assembly":ledger.assembly(copy.id),"lifecycle":ledger.lifecycle(copy.id),"archived":archived})
         }).collect::<Vec<_>>();
         let closed_lots=ledger.classification().iter().filter(|(_,state)|state.complete).map(|(id,_)| {
             let source=ledger.provenance().get(id);
             let label=source.and_then(|line_id|purchases.iter().flat_map(|p|p.draft.lines.iter()).find(|line|line.id==*line_id)).and_then(|line|line.description.as_deref()).unwrap_or("Unlabelled mixed lot");
             json!({"id":id,"label":label,"revision":ledger.holdings()[id].revision})
         }).collect::<Vec<_>>();
-        Ok(json!({"dashboard":store.dashboard()?,"settings":store.settings()?.into_values().collect::<Vec<_>>(),"catalog":store.catalog()?.into_values().collect::<Vec<_>>(),"profiles":profiles.into_values().collect::<Vec<_>>(),"purchases":purchases,"attachments":store.attachments()?,"set_copies":copies,"closed_lots":closed_lots,"backup_status":backup_status,"backup_notice":backup_notice}))
+        Ok(json!({"enrichments":store.enrichments()?,"dashboard":store.dashboard()?,"settings":store.settings()?.into_values().collect::<Vec<_>>(),"catalog":store.catalog()?.into_values().collect::<Vec<_>>(),"profiles":profiles.into_values().collect::<Vec<_>>(),"purchases":purchases,"attachments":store.attachments()?,"set_copies":copies,"closed_lots":closed_lots,"backup_status":backup_status,"backup_notice":backup_notice}))
     }).await
 }
 async fn price_history(
@@ -382,7 +399,10 @@ async fn command(
     Json(mut value): Json<Value>,
 ) -> Result<Json<Value>, ApiError> {
     if let Value::Object(fields) = &mut value {
-        fields.insert("actor".into(), Value::String(local_actor()));
+        fields.insert(
+            "actor".into(),
+            Value::String(std::env::var("USER").unwrap_or_else(|_| "local-user".into())),
+        );
     }
     db(state, move |store| {
         Ok(match kind.as_str() {
@@ -391,6 +411,15 @@ async fn command(
                 json!({"deleted":true})
             }
             "purchases" => {
+                if let Some(draft) = value
+                    .get_mut("body")
+                    .and_then(|b| b.get_mut("Create"))
+                    .and_then(|c| c.get_mut("draft"))
+                    && draft.is_object()
+                    && draft.get("shipping_method").is_none_or(Value::is_null)
+                {
+                    draft["shipping_method"] = json!("Volume");
+                }
                 serde_json::to_value(store.execute_purchase(decode::<PurchaseCommand>(value)?)?)?
             }
             "settings" => serde_json::to_value(store.execute_settings(decode(value)?)?)?,
@@ -750,4 +779,192 @@ async fn disconnect(State(state): State<AppState>, Json(tab): Json<Tab>) -> Json
     state.tabs.lock().expect("tabs").remove(&tab.tab_id);
     *state.idle_since.lock().expect("idle") = Instant::now();
     Json(json!({"ok":true}))
+}
+
+async fn project_view(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+    db(state, |store| store.projects()).await
+}
+async fn project_command(
+    State(state): State<AppState>,
+    Json(mut value): Json<Value>,
+) -> Result<Json<Value>, ApiError> {
+    value["actor"] = Value::String(std::env::var("USER").unwrap_or_else(|_| "local-user".into()));
+    db(state, move |store| {
+        Ok(serde_json::to_value(
+            store.execute_project(decode(value)?)?,
+        )?)
+    })
+    .await
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ModelPreview {
+    source: String,
+}
+async fn model_preview(Json(input): Json<ModelPreview>) -> Result<Json<Value>, ApiError> {
+    let parts = brickxinator_core::model_import::ldraw(&input.source)
+        .map_err(|e| ApiError(StatusCode::UNPROCESSABLE_ENTITY, e))?;
+    Ok(Json(json!({"parts":parts})))
+}
+
+async fn physical_view(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+    db(state, |s| s.physical_view()).await
+}
+fn physical_actor(op: &mut Operation) {
+    op.actor = std::env::var("USER").unwrap_or_else(|_| "local-user".into());
+}
+async fn physical_preview(
+    State(state): State<AppState>,
+    Json(mut op): Json<Operation>,
+) -> Result<Json<Value>, ApiError> {
+    physical_actor(&mut op);
+    db(state, move |s| s.preview_physical(op)).await
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PhysicalInput {
+    operation: Operation,
+    expected_profile_sequence: i64,
+}
+async fn physical_command(
+    State(state): State<AppState>,
+    Json(mut input): Json<PhysicalInput>,
+) -> Result<Json<Value>, ApiError> {
+    physical_actor(&mut input.operation);
+    db(state, move |s| {
+        Ok(serde_json::to_value(s.execute_physical(
+            input.operation,
+            input.expected_profile_sequence,
+        )?)?)
+    })
+    .await
+}
+
+async fn fulfilment_view(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<Value>, ApiError> {
+    db(state, move |s| s.fulfilment(parse_id(&id)?)).await
+}
+async fn fulfilment_preview(
+    State(state): State<AppState>,
+    Json(mut command): Json<brickxinator_core::fulfilment::Command>,
+) -> Result<Json<Value>, ApiError> {
+    command.actor = std::env::var("USER").unwrap_or_else(|_| "local-user".into());
+    db(state, move |s| s.preview_fulfilment(command)).await
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FulfilmentInput {
+    command: brickxinator_core::fulfilment::Command,
+    expected_inventory_sequence: usize,
+    expected_profile_sequence: i64,
+}
+async fn fulfilment_command(
+    State(state): State<AppState>,
+    Json(mut input): Json<FulfilmentInput>,
+) -> Result<Json<Value>, ApiError> {
+    input.command.actor = std::env::var("USER").unwrap_or_else(|_| "local-user".into());
+    db(state, move |s| {
+        Ok(serde_json::to_value(s.execute_fulfilment(
+            input.command,
+            input.expected_inventory_sequence,
+            input.expected_profile_sequence,
+        )?)?)
+    })
+    .await
+}
+
+async fn child_cost_view(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<Value>, ApiError> {
+    db(state, move |s| s.child_costs(parse_id(&id)?)).await
+}
+async fn child_cost_preview(
+    State(state): State<AppState>,
+    Json(mut command): Json<brickxinator_core::child_costs::Command>,
+) -> Result<Json<Value>, ApiError> {
+    command.actor = std::env::var("USER").unwrap_or_else(|_| "local-user".into());
+    db(state, move |s| {
+        Ok(serde_json::to_value(s.preview_child_cost(command)?)?)
+    })
+    .await
+}
+async fn child_cost_command(
+    State(state): State<AppState>,
+    Json(mut command): Json<brickxinator_core::child_costs::Command>,
+) -> Result<Json<Value>, ApiError> {
+    command.actor = std::env::var("USER").unwrap_or_else(|_| "local-user".into());
+    db(state, move |s| {
+        Ok(serde_json::to_value(s.execute_child_cost(command)?)?)
+    })
+    .await
+}
+
+async fn integration_view(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+    db(state, |s| s.integrations()).await
+}
+async fn integration_parse(
+    Json(source): Json<brickxinator_infra::integration_store::Source>,
+) -> Result<Json<Value>, ApiError> {
+    Ok(Json(brickxinator_infra::integration_store::preview(
+        &source,
+    )?))
+}
+async fn integration_preview(
+    State(state): State<AppState>,
+    Json(mut command): Json<brickxinator_infra::integration_store::Command>,
+) -> Result<Json<Value>, ApiError> {
+    command.actor = std::env::var("USER").unwrap_or_else(|_| "local-user".into());
+    db(state, move |s| {
+        Ok(serde_json::to_value(s.preview_integration(command)?)?)
+    })
+    .await
+}
+async fn integration_apply(
+    State(state): State<AppState>,
+    Json(mut command): Json<brickxinator_infra::integration_store::Command>,
+) -> Result<Json<Value>, ApiError> {
+    command.actor = std::env::var("USER").unwrap_or_else(|_| "local-user".into());
+    db(state, move |s| {
+        Ok(serde_json::to_value(s.execute_integration(command)?)?)
+    })
+    .await
+}
+async fn wanted_xml(
+    Json(items): Json<Vec<brickxinator_core::integrations::Wanted>>,
+) -> Result<Json<Value>, ApiError> {
+    Ok(Json(
+        json!({"xml":brickxinator_core::integrations::wanted_xml(&items).map_err(|e|ApiError(StatusCode::UNPROCESSABLE_ENTITY,e))?}),
+    ))
+}
+
+async fn cost_rollup_view(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+    db(state, |s| s.cost_rollups()).await
+}
+
+async fn enrichment_view(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+    db(state, |s| s.enrichments()).await
+}
+async fn enrichment_preview(
+    State(state): State<AppState>,
+    Json(mut command): Json<brickxinator_infra::enrichment_store::Command>,
+) -> Result<Json<Value>, ApiError> {
+    command.actor = std::env::var("USER").unwrap_or_else(|_| "local-user".into());
+    db(state, move |s| {
+        Ok(serde_json::to_value(s.preview_enrichment(command)?)?)
+    })
+    .await
+}
+async fn enrichment_apply(
+    State(state): State<AppState>,
+    Json(mut command): Json<brickxinator_infra::enrichment_store::Command>,
+) -> Result<Json<Value>, ApiError> {
+    command.actor = std::env::var("USER").unwrap_or_else(|_| "local-user".into());
+    db(state, move |s| {
+        Ok(serde_json::to_value(s.execute_enrichment(command)?)?)
+    })
+    .await
 }

@@ -1,58 +1,92 @@
 # Brickxinator FAQ
 
+Updated 2026-11-23. Current evidence and limitations: [ALPHA_STATUS](../ALPHA_STATUS.md).
+
 ## Can I run it now?
 
-A source-built alpha candidate is available on the `alpha-foundation` review
-branch; see [INSTALL](../INSTALL.md). The first intended prerelease is
-0.1.0-alpha.1; it has not shipped.
-
-## What platform and language?
-
-Kubuntu 26.04 LTS, Firefox and Chromium, English UI. Local Rust/Axum + SQLite backend and Svelte/TypeScript browser interface. No login, LAN server or Tauri in alpha.
+Yes, as a source review candidate on `alpha-foundation`, or the local Linux
+Docker preview. See [INSTALL](../INSTALL.md). `0.1.0-alpha.1` is not a published
+release/tag. Kubuntu 26.04, Firefox/Chromium and one local user are the target.
 
 ## Does it need internet?
 
-No for core use. Collection search, purchases, set management and managed photos/PDFs must work offline. Online integrations are deferred; clicking an external URL is explicit.
+Core collection, planning, financial, cost, files and recovery workflows work
+locally. Imports/exports use reviewed files and local caches. External image
+downloads, live synchronization, ordering and online retrieval are not implemented.
 
-## What if I do not know quantities or prices?
+## What if quantities or prices are unknown?
 
-Leave them unknown. Blank cost is different from known zero. Count and weight are independently optional; no automatic piece/weight conversion. Invalid supplied values require correction or clearing. Blank drafts receive internal IDs.
+Keep them unknown. Unknown is not zero. Count/weight are independent and no
+conversion is inferred. Unknown copy counts create no invented identities.
+Expected definitions/BOMs do not materialize owned parts.
 
-## Does receiving a set add all its expected parts?
+## Does receipt or warranty approval create all the expected parts?
 
-No. It creates the owned set copy. Expected contents are an unverified checklist; actual parts count only when verified. Unverified never automatically means missing.
+No. Actual receipts introduce explicitly received holdings/copies. A set receipt
+creates copies, not advertised detailed contents. Warranty status alone creates
+nothing; actual replacement receipts use new identities for new physical copies.
 
-## Can assembled sets remain unverified?
+## Can I receive part of an order or return only some items?
 
-Yes. Assembly, verification and damage are independent. Assembled and Partially Assembled make all linked actual parts unavailable. Loose releases usable actual parts; damaged pieces remain owned but unavailable.
+Yes. Orders & warranty supports partial receipts, manual shipments/backorders,
+reviewed reversal and supplier return planning/dispatch/acknowledgment/correction.
+Only dispatch removes returned stock; acknowledgment/refunds do not repeat it.
+Cross-purchase merged returns need explicit known acquisition-source quantities.
+Unsafe/stale corrections block rather than silently cancel claims or invent stock.
 
-## Can I move a set's loose parts to different drawers?
+## Is a loose set automatically available for another project?
 
-Not in alpha. A set copy and all linked contents share one location. Independent batches move whole. Identified children of a mixed lot may move independently after identification.
+No. Allocation/assignment reserves stock regardless of assembly/location.
+Verification is separate from planning coverage. Legacy verified set contents
+must be explicitly detached for independent loose use; quantity project claims
+must be released/transferred explicitly. Some old/new completeness integration
+remains acceptance work; do not treat an unverified gap as confirmed missing.
 
-## How are shared purchase prices and shipping handled?
+## Can I split stock or keep parts after selling a copy?
 
-Keep the original invoice-line price. Multiple set copies can share a price without invented per-copy values. Six shipping modes allocate to invoice lines; allocation never overwrites source prices. Tax metadata never adds tax twice. Internal mixed-lot child cost allocation is deferred.
+Yes. Reviewed splits, compatible merges, detachment and explicit transfer/keep/
+custom lifecycle disposition retain history. Copy UUIDs survive Sold/Donated/
+Lost/Stolen/Destroyed/Void/Returned states. Archiving only hides clutter.
+Ambiguous source quantities can remain unknown and block later returns.
 
-## Are archived records still owned?
+## How do discounts, gift cards and costs differ?
 
-Yes. Archiving hides clutter but retains searchability, attachments, history and inventory totals. It is not a stock reduction.
+Original paid invoice-line values remain historical facts. Enter gross amounts
+separately before new discounts/coupons. Gift cards/vouchers are payments, not
+another price reduction. Refunds are separate from physical returns. Financial
+line allocation uses four automatic exact-cent modes; shipping uses seven modes,
+including Volume, with no missing-input fallback. Tax is informational.
+
+Derived Manual/Piece Count costs can target real holdings and active copies from
+the acquisition. They share a source/component budget. Residual and disposed cost
+stay explicit; source changes require reviewed reallocation. Rollups show existing
+costs, not extra basis; estimates/market observations and reservations are separate.
+Unassigned costs are not zero, and copy costing bases do not verify physical parts.
+
+## Can I import Studio/Rebrickable data or use Obsidian?
+
+Studio LDraw/MPD and CSV/TSV exports satisfy alpha; native `.io` is deferred.
+Scoped, decompressed text imports are limited to 4 MiB. Map BOM references explicitly.
+Reviewed Rebrickable catalog/color/theme files preserve local UUIDs/unselected
+fields. Local images remain managed offline. Wanted List XML requires confirmed
+BrickLink IDs. Markdown export is available; Obsidian import/live sync is deferred.
 
 ## How do backups work?
 
-Required: automatic daily incrementals, 30 daily points plus dependencies; separate full monthly snapshots on the first, 12 retained. Monthly backups do not replace daily ones. Independent OS scheduling, multiple destinations, warnings for failures and validated restore are required. Restic and the opt-in systemd user timer are implemented and tested with
-disposable data; destinations start disabled. See INSTALL.md for activation. Monthly snapshots must remain accessible without specialized backup software.
+Destinations start disabled. Daily success requires a validated ZIP plus external
+Restic protection/check/retention; keep 30 daily points and 12 independent monthly
+ZIPs. Review/activate destinations and scheduling explicitly. NAS/external backup
+storage does not authorize a live NAS database. See [INSTALL](../INSTALL.md).
 
-## What is deliberately outside alpha?
+## What remains outside this candidate?
 
-Reservations, per-part assembly, global missing-parts planning, CAD/train/MOC features, online integrations, partial receipt/reversal, return/refund flows, volume shipping allocation, internal child-lot cost allocation and Obsidian import. See ROADMAP.md.
+See [ROADMAP](ROADMAP.md) for acceptance work and post-alpha boundaries. There is
+no CAD/geometry editor, per-piece assembly, marketplace ordering, required cloud
+service, multi-user mode or packaged installer. A desktop review/release approval
+and reporting contacts remain gates.
 
-## Where do I report a bug or security issue?
+## Where do I report problems?
 
-Public source/ordinary bugs: https://github.com/richardnoragon/brickxinator.
-Private security reporting is explicitly deferred until before release. No
-reporting address has been invented. See SECURITY.md.
-
-## What is the inventory source of truth?
-
-The movement journal, not purchase totals. Purchases record historical acquisition; receipt/verification/adjustment/transfer commands record stock facts. Current balances/search indexes are rebuildable projections. Damage and assembly affect usability without incorrectly reducing ownership.
+[Public source/ordinary bugs](https://github.com/richardnoragon/brickxinator).
+Private security reporting is explicitly deferred until before release. Never
+post private collection data or sensitive vulnerability details in public issues.

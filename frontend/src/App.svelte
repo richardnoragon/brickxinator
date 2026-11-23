@@ -1,5 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Projects from './Projects.svelte';
+  import Physical from './Physical.svelte';
+  import Fulfilment from './Fulfilment.svelte';
+  import ChildCosts from './ChildCosts.svelte';
+  import Integrations from './Integrations.svelte';
   import {
     api,
     bootstrap,
@@ -30,9 +35,10 @@
   let page = $state('Dashboard');
   let error = $state('');
   let notice = $state('');
-  let busy = $state(false);
+  let busy = $state(true);
   let inventory = $state<Data>({ rows: [], total_matches: 0, totals: null });
   let includeArchived = $state(false);
+  let includeInactive = $state(false);
   let assemblyFilter = $state('');
   let kindFilter = $state('');
   let incompleteOnly = $state(false);
@@ -96,6 +102,7 @@
   let description = $state('');
   let year = $state('');
   let theme = $state('');
+  let themeId = $state('');
   let boxPieces = $state('');
   let history = $state<Data[] | null>(null);
   let uploadTarget = $state('');
@@ -182,6 +189,11 @@
     'Inventory',
     'Sets',
     'Catalog',
+    'Projects',
+    'Stock & lifecycle',
+    'Orders & warranty',
+    'Cost allocations',
+    'Imports & exports',
     'Settings',
     'Recovery',
   ];
@@ -189,6 +201,10 @@
     data.settings.filter((r: Data) => r.kind.Vocabulary?.vocabulary === kind);
   const unknown = (kind: string) =>
     vocab(kind).find((r: Data) => r.kind.Vocabulary.system_unknown)?.id ?? '';
+  const enrichmentThemes = () =>
+    Object.values(data.enrichments?.records ?? {}).filter(
+      (r: any) => r.kind === 'Theme',
+    ) as Data[];
   const active = (records: Data[]) => records.filter((r) => !r.archived);
   function locationPath(id: string): string {
     const r = data.settings.find((r: Data) => r.id === id);
@@ -232,6 +248,7 @@
         InAssembledSet: 'In assembled set',
         BrokenDamaged: 'Broken/damaged',
         PurchaseLevel: 'Purchase level',
+        Volume: 'Total packaged volume',
         PriceProportional: 'Proportional to paid prices',
         PieceCount: 'By piece count',
       }) as Record<string, string>
@@ -246,6 +263,8 @@
   const weightTotals = (coverage: Data) =>
     `${weightText(String(coverage.known_sum))} known${coverage.unknown_holdings ? ` · ${coverage.unknown_holdings} unmeasured holding(s)` : ''}`;
   function availableWeight(row: Data): string {
+    if (row.general_available_weight_mg !== undefined)
+      return weightMeasure(row.general_available_weight_mg);
     if (row.assembly !== 'Loose') return '0 g';
     const owned = known(row.holding.weight_mg.owned);
     const damaged = known(row.holding.weight_mg.damaged);
@@ -268,6 +287,7 @@
       kind: kindFilter || null,
       incomplete: incompleteOnly ? true : null,
       archived: includeArchived ? null : false,
+      include_inactive: includeInactive,
       seller: sellerFilter || null,
       purchased_from: purchasedFrom || null,
       purchased_through: purchasedThrough || null,
@@ -322,6 +342,8 @@
       source_url: '',
       notes: '',
       shipping: '',
+      fees: '',
+      shipping_method: 'Volume',
       lines: [],
     };
     costs = null;
@@ -345,6 +367,7 @@
       order_number: p.draft.order_number ?? '',
       source_url: p.draft.source_url ?? '',
       shipping: amount(p.draft.shipping_cents),
+      fees: amount(p.draft.fees_cents),
       lines: p.draft.lines.map((l: Data) => ({
         ...l,
         notes: l.notes ?? '',
@@ -353,6 +376,8 @@
         grams: known(l.weight_mg) ? quantityAmount(known(l.weight_mg), 3) : '',
         copies: l.copy_count === null ? '' : String(l.copy_count),
         price: amount(l.paid_total_cents),
+        volume:
+          l.volume_ml == null ? '' : quantityAmount(String(l.volume_ml), 3),
       })),
     };
     costs = null;
@@ -372,6 +397,7 @@
         copies: '',
         pieces: '',
         grams: '',
+        volume: '',
         price: '',
         assembly: 'Loose',
       },
@@ -390,6 +416,8 @@
       source_url: purchaseForm.source_url || null,
       notes: purchaseForm.notes,
       shipping_cents: scaled(purchaseForm.shipping, 2),
+      fees_cents: scaled(purchaseForm.fees, 2),
+      shipping_method: purchaseForm.shipping_method ?? null,
       lines: purchaseForm.lines.map((l: Data) => ({
         id: l.id,
         kind: l.kind,
@@ -400,6 +428,7 @@
         copy_count: l.kind === 'Set' ? integer(l.copies) : null,
         pieces: measure(l.pieces),
         weight_mg: measure(l.grams, 3),
+        volume_ml: scaled(l.volume, 3),
         paid_total_cents: scaled(l.price, 2),
         assembly: l.kind === 'Set' ? l.assembly : 'Loose',
       })),
@@ -863,6 +892,7 @@
         ? ''
         : String(record.details.release_year);
     theme = record.details.theme ?? '';
+    themeId = record.details.theme_id ?? '';
     boxPieces =
       record.details.stated_piece_count === null
         ? ''
@@ -884,6 +914,7 @@
       description: description || null,
       release_year: catalogKind === 'Set' ? integer(year) : null,
       theme: catalogKind === 'Set' ? theme || null : null,
+      theme_id: catalogKind === 'Set' ? themeId || null : null,
       stated_piece_count: catalogKind === 'Set' ? integer(boxPieces) : null,
     };
     const action = catalogEdit
@@ -903,6 +934,7 @@
     description = '';
     year = '';
     theme = '';
+    themeId = '';
     boxPieces = '';
   }
   async function upload(files: FileList | File[]) {
@@ -987,7 +1019,10 @@
         await beat();
         timer = setInterval(beat, 10000);
       })
-      .catch((e) => (error = String(e)));
+      .catch((e) => (error = String(e)))
+      .finally(() => {
+        busy = false;
+      });
     window.addEventListener('pagehide', leave);
     const paste = (event: ClipboardEvent) => {
       if (page !== 'Purchases' || !purchase?.revision || !event.clipboardData)
@@ -1044,7 +1079,10 @@
     {#each pages as item}<button
         disabled={busy}
         class:active={page === item}
-        onclick={() => (page = item)}>{item}</button
+        onclick={() => {
+          page = item;
+          void run(refresh);
+        }}>{item}</button
       >{/each}<small class="version">0.1.0-alpha.1 · Development</small>
   </nav>
   <main aria-busy={busy}>
@@ -1235,6 +1273,12 @@
                       placeholder="Unknown"
                     /></label
                   ><label
+                    >Acquisition fees · EUR<input
+                      bind:value={purchaseForm.fees}
+                      inputmode="decimal"
+                      placeholder="Not recorded"
+                    /></label
+                  ><label
                     >Status<select
                       bind:value={purchase.status}
                       disabled={purchase.status === 'Received'}
@@ -1284,6 +1328,12 @@
                       ><label
                         >Weight · g<input
                           bind:value={line.grams}
+                          inputmode="decimal"
+                          placeholder="Unknown"
+                        /></label
+                      ><label
+                        >Total packaged volume · L<input
+                          bind:value={line.volume}
                           inputmode="decimal"
                           placeholder="Unknown"
                         /></label
@@ -1478,7 +1528,7 @@
               >Allocation method<select
                 value={costs.state.method}
                 onchange={(e) => run(() => shipping(e.currentTarget.value))}
-                >{#each ['PurchaseLevel', 'Equal', 'PriceProportional', 'PieceCount', 'Weight', 'Manual'] as method}<option
+                >{#each ['PurchaseLevel', 'Equal', 'PriceProportional', 'PieceCount', 'Weight', 'Volume', 'Manual'] as method}<option
                     >{method}</option
                   >{/each}</select
               ></label
@@ -1665,12 +1715,14 @@
                       >{row.holding
                         ? `${known(row.holding.pieces.owned) || 'Unknown'} owned`
                         : 'Physical copy / source line'}{#if row.holding}<small
-                          >{row.assembly !== 'Loose'
-                            ? '0 available (assembled)'
-                            : known(row.holding.pieces.owned) &&
-                                known(row.holding.pieces.damaged)
-                              ? `${BigInt(known(row.holding.pieces.owned)) - BigInt(known(row.holding.pieces.damaged))} available`
-                              : 'Availability unknown'}</small
+                          >{row.general_available_pieces !== undefined
+                            ? `${known(row.general_available_pieces) || 'Unknown'} generally available`
+                            : row.assembly !== 'Loose'
+                              ? '0 available (assembled)'
+                              : known(row.holding.pieces.owned) &&
+                                  known(row.holding.pieces.damaged)
+                                ? `${BigInt(known(row.holding.pieces.owned)) - BigInt(known(row.holding.pieces.damaged))} available`
+                                : 'Availability unknown'}</small
                         ><small
                           >Owned weight: {weightMeasure(
                             row.holding.weight_mg.owned,
@@ -1936,12 +1988,16 @@
           <label class="check"
             ><input type="checkbox" bind:checked={includeArchived} /> Include archived
             records</label
-          >{#each data.set_copies.filter((r: Data) => includeArchived || !r.archived) as row}<div
+          ><label class="check"
+            ><input type="checkbox" bind:checked={includeInactive} /> Include inactive
+            copy history</label
+          >{#each data.set_copies.filter((r: Data) => (includeArchived || !r.archived) && (includeInactive || !r.lifecycle || r.lifecycle.status === 'Active')) as row}<div
               class="list-row"
             >
               <button onclick={() => run(() => openSet(row.id))}
                 ><strong>{row.label}</strong><span class="badge"
-                  >{human(row.assembly)}</span
+                  >{human(row.assembly)} · {row.lifecycle?.status ??
+                    'Active'}</span
                 ></button
               ><button onclick={() => manageCopy(row)}
                 >Catalog, storage &amp; archive</button
@@ -2226,6 +2282,13 @@
               >{#if catalogKind === 'Set'}<label
                   >Release year<input bind:value={year} /></label
                 ><label>Theme<input bind:value={theme} /></label><label
+                  >Catalog theme<select bind:value={themeId}
+                    ><option value="">Free text / unknown</option
+                    >{#each enrichmentThemes() as item}<option value={item.id}
+                        >{item.name} · source {item.external_id}</option
+                      >{/each}</select
+                  ></label
+                ><label
                   >Stated piece count<input bind:value={boxPieces} /></label
                 >{/if}
             </div>
@@ -2360,6 +2423,16 @@
               </table>
             </div>
           </section>{/if}
+      {:else if page === 'Imports & exports'}
+        <Integrations {data} />
+      {:else if page === 'Cost allocations'}
+        <ChildCosts {data} />
+      {:else if page === 'Orders & warranty'}
+        <Fulfilment {data} />
+      {:else if page === 'Stock & lifecycle'}
+        <Physical />
+      {:else if page === 'Projects'}
+        <Projects {data} />
       {:else if page === 'Settings'}
         <section>
           <h2>Managed names &amp; storage</h2>

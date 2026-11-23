@@ -1,3 +1,5 @@
+> Preserved historical material: Discovery record. For current behavior use [current documentation](TOC.md) and the root ALPHA_STATUS.md. Later accepted decisions supersede old scope assumptions.
+
 # Alpha discovery workbook
 
 Status: rounds 1–15 recorded; functional discovery foundation sufficient to begin alpha implementation. Updated: 2026-10-31.

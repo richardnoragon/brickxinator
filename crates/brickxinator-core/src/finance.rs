@@ -14,6 +14,7 @@ pub enum Method {
     PriceProportional,
     PieceCount,
     Weight,
+    Volume,
     Manual,
 }
 
@@ -25,6 +26,14 @@ pub struct State {
     pub manual_shares: BTreeMap<Id, Option<u64>>,
 }
 impl State {
+    pub fn for_purchase(purchase: &Purchase) -> Self {
+        let mut state = Self::new(purchase.id);
+        state.method = purchase
+            .draft
+            .shipping_method
+            .unwrap_or(Method::PurchaseLevel);
+        state
+    }
     pub fn new(purchase_id: Id) -> Self {
         Self {
             purchase_id,
@@ -78,7 +87,9 @@ pub fn prepare(
     if purchase.revision != command.expected_purchase_revision {
         return Err("purchase changed since allocation was prepared");
     }
-    let mut next = before.clone().unwrap_or_else(|| State::new(purchase.id));
+    let mut next = before
+        .clone()
+        .unwrap_or_else(|| State::for_purchase(purchase));
     if next.revision != command.expected_revision {
         return Err("shipping allocation changed since this command was prepared");
     }
@@ -216,6 +227,7 @@ pub fn allocate(purchase: &Purchase, state: &State) -> Result<Allocation, &'stat
     let mut total = 0_u128;
     for line in &purchase.draft.lines {
         let basis = match method {
+            Method::Volume => line.volume_ml,
             Method::Equal => Some(1),
             Method::PriceProportional => line.paid_total_cents,
             Method::PieceCount => match line.pieces {
@@ -404,10 +416,13 @@ pub fn costs(purchase: &Purchase, state: &State) -> Result<Costs, &'static str> 
         });
     }
     let total = if unknown_price_lines == 0 {
-        purchase
-            .draft
-            .shipping_cents
-            .map(|shipping| Exact(subtotal + u128::from(shipping)))
+        purchase.draft.shipping_cents.map(|shipping| {
+            Exact(
+                subtotal
+                    + u128::from(shipping)
+                    + u128::from(purchase.draft.fees_cents.unwrap_or(0)),
+            )
+        })
     } else {
         None
     };

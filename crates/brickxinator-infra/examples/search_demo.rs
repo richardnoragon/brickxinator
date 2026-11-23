@@ -59,6 +59,7 @@ fn main() -> Result<()> {
                 description: None,
                 release_year: None,
                 theme: None,
+                theme_id: None,
                 stated_piece_count: None,
             },
         },

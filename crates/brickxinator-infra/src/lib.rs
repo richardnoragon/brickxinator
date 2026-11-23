@@ -23,3 +23,17 @@ pub mod prices;
 pub mod purge;
 pub mod recovery;
 pub mod snapshots;
+
+pub mod project_store;
+
+pub mod physical_store;
+
+pub mod fulfilment_store;
+
+pub mod child_cost_store;
+
+pub mod integration_store;
+
+pub mod cost_rollups;
+
+pub mod enrichment_store;

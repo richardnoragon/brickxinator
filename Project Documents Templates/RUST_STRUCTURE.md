@@ -1,13 +1,28 @@
-# Rust crate/module structure and API plan
+# Rust workspace, modules and API
 
-Current implementation (2026-11-01): the three-crate workspace now exists in
-[crates](../crates), with locked dependencies in Cargo.lock. Core owns typed
-commands/invariants; infra owns SQLite, files, search, snapshots, recovery, Restic
-and native exchange; app owns the loopback Axum API and CLI. Svelte/TypeScript
-lives in [frontend](../frontend). CLI installation/check commands are in
-[INSTALL](../INSTALL.md); validation is in [ALPHA_STATUS](../ALPHA_STATUS.md).
-The layout below is the historical pre-code plan; actual source paths are
-authoritative. API routes are versioned under `/api/v1`.
+Current: 2026-11-23. Executable source, Cargo.lock and frontend/package-lock.json
+are authoritative; the original proposed layout is retained below as history.
+
+## Implemented workspace
+
+| Crate | Responsibilities |
+| --- | --- |
+| brickxinator-core | inventory/journal/ledger, purchases/fulfilment/supplier returns, physical lifecycle/source layers, verification/stock, settings/catalog/profiles, finance/adjustments/child costs, projects and file-format transformations |
+| brickxinator-infra | SQLite adapters/replay, source/cost layers and rollups, reviewed integration/enrichment stores, files/search/prices, exchange, maintenance/snapshots/recovery, backups/Restic |
+| brickxinator-app | loopback Axum routes/security, CLI/liveness, locally built asset serving |
+
+Frontend components: App, Projects, Physical, Fulfilment, ChildCosts and
+Integrations. They use the versioned `/api/v1` API; persisted calculations and
+dependency checks remain backend-owned. Runtime routes are declared in
+[app/lib.rs](../crates/brickxinator-app/src/lib.rs), including state/search,
+commands/history, projects/model preview, physical preview/apply, fulfilment
+preview/apply, child-cost preview/apply, cost-rollups, integration/enrichment
+preview/apply, attachments, exchange, backups and recovery.
+
+CLI commands and supported flags are documented in [INSTALL](../INSTALL.md);
+validation in [TESTING](TESTING.md). No plugin framework, CAD engine or separately
+deployed domain service is introduced. All new history tables are in migrations
+013–018 and the fixed native-exchange registry.
 
 ## Historical specification
 

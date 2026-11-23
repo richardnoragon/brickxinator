@@ -20,6 +20,7 @@ fn command(key: &str, body: PurchaseAction) -> PurchaseCommand {
 }
 fn line(kind: LineKind) -> InvoiceLine {
     InvoiceLine {
+        volume_ml: None,
         source_url: None,
         notes: String::new(),
         id: Id::new(),
@@ -61,6 +62,8 @@ fn acquisition_edits_do_not_overwrite_an_independent_physical_stock_observation(
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![batch],
                     ..Default::default()
                 },
@@ -131,6 +134,8 @@ fn repeated_acquisition_corrections_can_restore_a_known_baseline_without_double_
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![lot],
                     ..Default::default()
                 },
@@ -198,6 +203,8 @@ fn received_correction_reconciles_only_residual_stock_after_classification() {
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![lot],
                     ..Default::default()
                 },
@@ -269,6 +276,8 @@ fn unknown_copy_count_discovery_adds_independent_copies_without_receiving_again(
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     shipping_cents: Some(0),
                     lines: vec![set],
                     ..Default::default()
@@ -325,6 +334,8 @@ fn stale_or_modified_correction_preview_cannot_change_stock() {
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![batch],
                     ..Default::default()
                 },
@@ -383,6 +394,8 @@ fn failed_correction_audit_rolls_back_discovered_copies_and_source_metadata() {
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![set],
                     ..Default::default()
                 },
@@ -434,6 +447,8 @@ fn blank_draft_is_valid_and_pre_receipt_states_never_create_stock() {
     let mut loose = line(LineKind::LooseBatch);
     loose.pieces = Known(100);
     let draft = Draft {
+        fees_cents: None,
+        shipping_method: None,
         lines: vec![loose],
         ..Draft::default()
     };
@@ -477,6 +492,8 @@ fn whole_purchase_receipt_creates_batches_and_independent_set_copies_once() {
     lot.weight_mg = Known(5_000_000);
     lot.paid_total_cents = Some(8000);
     let draft = Draft {
+        fees_cents: None,
+        shipping_method: None,
         seller: Some("Synthetic seller".into()),
         shipping_cents: Some(699),
         lines: vec![sets, loose, lot],
@@ -566,6 +583,8 @@ fn unknown_set_copy_count_is_received_without_inventing_copies() {
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![sets],
                     ..Draft::default()
                 },
@@ -596,6 +615,8 @@ fn stale_edits_status_bypass_and_post_receipt_edits_are_rejected() {
     let (_dir, _path, mut store) = setup();
     let id = Id::new();
     let draft = Draft {
+        fees_cents: None,
+        shipping_method: None,
         lines: vec![line(LineKind::MixedLot)],
         ..Draft::default()
     };
@@ -692,6 +713,8 @@ fn failed_receipt_rolls_back_purchase_stock_copies_provenance_and_audit() {
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![line(LineKind::LooseBatch), sets],
                     ..Draft::default()
                 },
@@ -737,6 +760,8 @@ fn identified_children_keep_invoice_provenance_and_price_is_not_duplicated() {
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![lot],
                     shipping_cents: Some(0),
                     ..Draft::default()
@@ -784,6 +809,8 @@ fn concurrent_receipts_with_different_keys_create_one_receipt() {
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![line(LineKind::LooseBatch)],
                     ..Draft::default()
                 },
@@ -823,6 +850,8 @@ fn malformed_numbers_duplicate_lines_and_missing_costs_are_distinct() {
     let mut part = line(LineKind::LooseBatch);
     part.paid_total_cents = Some(9300);
     let mut draft = Draft {
+        fees_cents: None,
+        shipping_method: None,
         lines: vec![part.clone()],
         shipping_cents: Some(699),
         ..Draft::default()
@@ -933,6 +962,8 @@ fn purchased_loose_batches_cannot_be_split_as_mixed_lots() {
             PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![line(LineKind::LooseBatch)],
                     ..Draft::default()
                 },

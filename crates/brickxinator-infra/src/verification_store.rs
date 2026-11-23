@@ -283,7 +283,10 @@ impl Store {
             .get(&copy_id)
             .into_iter()
             .flat_map(|state| state.lines.values())
-            .filter(|line| line.verified.is_some())
+            .filter(|line| {
+                line.verified.is_some()
+                    && ledger.set_contents().get(&line.holding_id) == Some(&copy_id)
+            })
             .map(|line| Content {
                 line_id: line.id,
                 holding_id: line.holding_id,

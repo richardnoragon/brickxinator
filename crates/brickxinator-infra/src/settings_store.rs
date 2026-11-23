@@ -104,7 +104,7 @@ fn vocabulary_name(v: Vocabulary) -> &'static str {
     }
 }
 
-fn seed_records() -> Result<BTreeMap<Id, Record>> {
+pub(crate) fn seed_records() -> Result<BTreeMap<Id, Record>> {
     [
         (Vocabulary::Manufacturer, "Unknown", true),
         (Vocabulary::Color, "Unknown", true),
@@ -137,7 +137,7 @@ fn seed_records() -> Result<BTreeMap<Id, Record>> {
     .collect()
 }
 
-fn write_record(connection: &Connection, r: &Record) -> Result<()> {
+pub(crate) fn write_record(connection: &Connection, r: &Record) -> Result<()> {
     let (vocabulary, unknown, location, parent) = match r.kind {
         Kind::Vocabulary {
             vocabulary,

@@ -32,6 +32,7 @@ fn main() -> Result<()> {
     ]
     .into_iter()
     .map(|(price, pieces, weight)| InvoiceLine {
+        volume_ml: None,
         source_url: None,
         notes: String::new(),
         id: Id::new(),
@@ -54,6 +55,8 @@ fn main() -> Result<()> {
         body: PurchaseAction::Create {
             purchase_id: purchase,
             draft: Draft {
+                fees_cents: None,
+                shipping_method: None,
                 seller: Some("Demo seller".into()),
                 shipping_cents: Some(100),
                 lines,

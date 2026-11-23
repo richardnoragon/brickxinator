@@ -1,6 +1,15 @@
 # ADR-021: Reviewed corrections and record lifecycle
 
-Date: 2026-11-01. Status: implemented within accepted alpha corrections/lifecycle scope.
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
+Date: 2026-11-01. Status: implemented within the then-accepted alpha scope.
+
+Scope update, 2026-11-22: D-136–D-142 supersede the whole-set deferral below.
+Whole-set lifecycle, explicit part disposition and audited reversal are now alpha
+requirements. Partial disposition, detached loose holdings, conflict-checked
+reversal and audited definition reassignment are confirmed; implementation and
+validation remain pending. The implementation
+evidence in this ADR does not cover the newly accepted scope.
 
 ## Acquisition corrections
 

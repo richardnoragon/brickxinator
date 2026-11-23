@@ -1,5 +1,7 @@
 # ADR-019: Local application, managed files and recovery coordinator
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-11-01. Status: implemented within the accepted alpha scope.
 
 ## Decision

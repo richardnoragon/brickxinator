@@ -64,6 +64,7 @@ fn details(manufacturer_id: Id, number: Option<&str>) -> Details {
         description: None,
         release_year: None,
         theme: None,
+        theme_id: None,
         stated_piece_count: None,
     }
 }
@@ -533,7 +534,10 @@ fn received_set_copies_link_to_set_definitions_and_move_without_creating_parts()
             body: PurchaseAction::Create {
                 purchase_id: purchase,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![InvoiceLine {
+                        volume_ml: None,
                         source_url: None,
                         notes: String::new(),
                         id: Id::new(),

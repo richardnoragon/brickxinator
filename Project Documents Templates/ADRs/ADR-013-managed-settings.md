@@ -1,5 +1,7 @@
 # ADR-013: Managed vocabularies and location trees
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-11-01. Status: implemented engineering decision within the agreed
 settings/storage scope. Part/set definitions and stock assignment are not yet
 implemented by this increment.

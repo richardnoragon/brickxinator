@@ -35,6 +35,27 @@ once tabs disconnect. A crashed tab expires after 30 seconds. Keep the source
 checkout and its built frontend assets together. Do not serve the database
 over a network share or run multiple application instances on the same data.
 
+## Updating an existing installation
+
+Current candidate schema is 18. Fetch/reconcile source changes, rebuild the
+frontend and release binary, then restart the native app or run
+`docker compose up --build -d`. Preserve the data directory/named volumes.
+Startup uses checksummed upgrades with pre-upgrade safety snapshots; do not edit
+applied migrations or replace a live database manually. Run `doctor --data-dir`
+after an update. Source synchronization is not a tagged release.
+
+For browser acceptance after building the debug executable:
+
+```sh
+cargo build --locked
+cd frontend
+npx playwright install chromium firefox
+npm run test:browser
+```
+
+Tests start a disposable collection; do not override the test URL with a real
+collection. Supported-desktop review remains separate from headless checks.
+
 ## Backups
 
 On first launch, disabled backup settings are created. In Recovery, load the
@@ -138,3 +159,26 @@ Startup also refuses a nonempty data directory whose database is missing. If a
 restore journal exists, use `recover` before attempting any reinitialization.
 Tested build environment and dependency review are recorded in ALPHA_STATUS.md
 and THIRD_PARTY.md. No binary installer or desktop package has been published.
+
+## Local Docker preview (Linux)
+
+Build the frontend and release binary using the source commands above, then run:
+
+```sh
+docker compose up --build -d
+docker compose ps
+```
+
+Open http://127.0.0.1:4217. `docker/Dockerfile.local` packages the locally built
+Ubuntu/Kubuntu 26.04 binary and frontend; rebuild both before starting newer code.
+This is a local preview image, not a portable published release artifact.
+Linux host networking preserves the application's loopback binding and exact
+Host/Origin checks. Port 4217 must be available. The container runs as UID 1000,
+with its own persistent named data and backup volumes; it does not mount your
+native collection. Backup destinations start disabled. Restic is installed, but
+no independent backup scheduler is configured in the container.
+
+Container previews stay running between browser sessions (the idle grace is set
+to ten years). Stop with `docker compose down`; named volumes retain your data.
+View service output with `docker compose logs --tail=50`. Avoid `down --volumes`
+unless you intend to permanently delete this preview collection and its backups.

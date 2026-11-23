@@ -16,6 +16,7 @@ use std::collections::BTreeMap;
 
 fn line(price: Option<u64>, pieces: Measure, weight_mg: Measure) -> InvoiceLine {
     InvoiceLine {
+        volume_ml: None,
         source_url: None,
         notes: String::new(),
         id: Id::new(),
@@ -36,6 +37,8 @@ fn purchase(lines: Vec<InvoiceLine>, shipping: Option<u64>) -> Purchase {
         revision: 1,
         status: PurchaseStatus::Draft,
         draft: Draft {
+            fees_cents: None,
+            shipping_method: None,
             lines,
             shipping_cents: shipping,
             ..Draft::default()
@@ -839,4 +842,26 @@ fn schema_seven_keeps_search_without_silently_installing_finance() {
             .unwrap(),
         7
     );
+}
+
+#[test]
+fn volume_and_separate_fees_preserve_paid_prices_and_unknown_basis() {
+    let mut a = line(Some(10_000), Known(100), Unknown);
+    a.volume_ml = Some(10_000);
+    let mut b = line(Some(30_000), Known(200), Unknown);
+    b.volume_ml = Some(30_000);
+    let mut p = purchase(vec![a, b], Some(2000));
+    p.draft.fees_cents = Some(300);
+    p.draft.shipping_method = Some(Method::Volume);
+    let s = State::for_purchase(&p);
+    let c = finance::costs(&p, &s).unwrap();
+    assert_eq!(c.allocation.shares[&p.draft.lines[0].id], Some(500));
+    assert_eq!(c.allocation.shares[&p.draft.lines[1].id], Some(1500));
+    assert_eq!(c.purchase_total_cents, Some(Exact(42_300)));
+    assert_eq!(p.draft.total_cents(), Some(42_300));
+    p.draft.lines[0].volume_ml = None;
+    let missing = finance::allocate(&p, &s).unwrap();
+    assert_eq!(missing.status, Status::Incomplete);
+    assert!(matches!(&missing.issues[0], Issue::MissingBasis(_)));
+    assert_eq!(p.draft.lines[0].paid_total_cents, Some(10_000));
 }

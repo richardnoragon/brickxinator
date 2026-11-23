@@ -4,6 +4,27 @@ No application version has been released.
 
 ## Unreleased
 
+### Expanded alpha implementation — 2026-11-23
+
+- Schema 013–018: project/BOM/claims, physical/source-flow history, fulfilment/
+  aftercare/financial history, derived cost history, integration source caching
+  and audited color/theme enrichment. Applied migrations remain unchanged.
+- Added lifecycle/disposition/safe corrections, stock splits/merges/detachment,
+  partial receipt/reversal, supplier return stages, warranties and exact financial
+  adjustments separated from settlement/ownership.
+- Added Volume shipping/fees, holding/direct-copy shared cost budgets, residual/
+  disposed costs, reviewed reallocations and non-duplicating copy/project rollups.
+- Added projects/readiness/shortages/progress, attributed prices, Studio-export/
+  LDraw/Rebrickable adapters, color/theme/local image enrichment, explicit
+  BrickLink mappings/Wanted List XML and Markdown export.
+- Updated Linux Docker preview and source installation; snapshots/native exchange
+  retain all added history. No binary release/tag or automatic backup activation.
+- Validation: 184 Rust tests, 18 Chromium/Firefox scenarios, formatting/lint/type/
+  build checks, native/recovery regressions, deployed hashes and Docker doctor.
+  Earlier opt-in Restic/process drills retain their separate evidence dates.
+- Reconciled operational documentation; ADR-023 supersedes earlier scope models
+  while preserving discovery/decision history. See ALPHA_STATUS for limits.
+
 ### Alpha source candidate
 
 Implementation: [c1551b5](https://github.com/richardnoragon/brickxinator/commit/c1551b5).

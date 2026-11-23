@@ -107,6 +107,12 @@ impl Store {
         }
         let id = command.body.purchase_id();
         let before = read_purchase(&tx, id)?;
+        if matches!(command.body, PurchaseAction::Receive { .. })
+            && let Some(current) = &before
+        {
+            crate::fulfilment_store::guard_purchase(&tx, &load(&tx)?, current, &command.body)?;
+        }
+
         let mut receipt = None;
         let mut reconciliation_operations = vec![];
         let next = match &command.body {
@@ -118,6 +124,14 @@ impl Store {
             } => {
                 let current = before.as_ref().ok_or(PurchaseError::MissingPurchase)?;
                 current.check_revision(*expected_revision)?;
+                let mut candidate = current.clone();
+                candidate.draft = draft.clone();
+                crate::fulfilment_store::guard_purchase(
+                    &tx,
+                    &load(&tx)?,
+                    &candidate,
+                    &command.body,
+                )?;
                 reconciliation_operations =
                     crate::corrections::apply(&tx, current, draft, preview, &command)?;
                 Purchase {
@@ -190,6 +204,13 @@ impl Store {
                 }
             }
         };
+        if !matches!(
+            command.body,
+            PurchaseAction::Receive { .. } | PurchaseAction::Correct { .. }
+        ) {
+            let current_ledger = load(&tx)?;
+            crate::fulfilment_store::guard_purchase(&tx, &current_ledger, &next, &command.body)?;
+        }
         let snapshot = serde_json::to_string(&next)?;
         tx.execute("INSERT INTO purchase(id,revision,status,snapshot_json) VALUES(?1,?2,?3,?4) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,status=excluded.status,snapshot_json=excluded.snapshot_json",
             params![id.to_string(), i64::try_from(next.revision)?, status_name(next.status), snapshot])?;
@@ -341,7 +362,7 @@ pub(crate) fn validate_ownership(connection: &Connection, ledger: &Ledger) -> Re
     for (id, line, operation_id, json) in copies {
         let copy: SetCopy = serde_json::from_str(&json)?;
         if copy.id.to_string() != id || copy.invoice_line_id.to_string() != line || ledger.set_copies().get(&copy.id) != Some(&copy)
-            || !ledger.operations().iter().any(|op| op.id.to_string() == operation_id && (matches!(&op.body, Body::Receive { lines, .. } if lines.iter().any(|l| l.invoice_line_id == copy.invoice_line_id)) || matches!(&op.body,Body::AddCopies{invoice_line_id,..} if *invoice_line_id==copy.invoice_line_id))) {
+            || !ledger.operations().iter().any(|op| op.id.to_string() == operation_id && (matches!(&op.body, Body::Receive { lines, .. }|Body::Delivery{lines,..} if lines.iter().any(|l| l.invoice_line_id == copy.invoice_line_id)) || matches!(&op.body,Body::AddCopies{invoice_line_id,..} if *invoice_line_id==copy.invoice_line_id))) {
             return Err("set-copy metadata differs from receipt history".into());
         }
     }
@@ -365,7 +386,20 @@ pub(crate) fn validate_ownership(connection: &Connection, ledger: &Ledger) -> Re
                 source_id,
                 child_id,
                 ..
+            }
+            | Body::Split {
+                source_id,
+                child_id,
+                ..
             } if child_id.to_string() == holding => Some(source_id.to_string()),
+            Body::Lifecycle(ref e) => e.parts.iter().find_map(|p| match p.handling {
+                brickxinator_core::physical::Handling::Custom { child_id, .. }
+                    if child_id.to_string() == holding =>
+                {
+                    Some(p.holding_id.to_string())
+                }
+                _ => None,
+            }),
             _ => None,
         });
         if parent != expected_parent {

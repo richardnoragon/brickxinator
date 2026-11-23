@@ -1,5 +1,7 @@
 # ADR-014: Catalog definitions and descriptive inventory links
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-11-01. Status: implemented engineering decision within the accepted
 catalog/settings/storage scope. This increment does not add ownership implicitly.
 

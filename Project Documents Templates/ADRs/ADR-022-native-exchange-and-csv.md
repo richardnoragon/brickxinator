@@ -1,5 +1,7 @@
 # ADR-022: Native v1 records and human CSV
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-11-01. Status: implemented engineering contract refining ADR-008.
 
 ## Native envelope

@@ -25,6 +25,8 @@ fn setup() -> (tempfile::TempDir, std::path::PathBuf, Id) {
             body: PurchaseAction::Create {
                 purchase_id: id,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     seller: Some("Before restore".into()),
                     ..Draft::default()
                 },

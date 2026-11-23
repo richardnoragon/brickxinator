@@ -1,5 +1,7 @@
 # ADR-012: Purchase drafts and atomic whole-purchase receipt
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-11-01. Status: implemented engineering decision within existing alpha
 scope. Unknown set-copy count behavior explicitly confirmed by the user today.
 

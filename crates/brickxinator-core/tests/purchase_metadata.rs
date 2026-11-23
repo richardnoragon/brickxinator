@@ -16,6 +16,8 @@ fn dates_obey_gregorian_calendar_and_tax_is_informational() {
         assert!(!valid_date(date));
     }
     let draft = Draft {
+        fees_cents: None,
+        shipping_method: None,
         purchased_on: Some("2026-11-01".into()),
         tax_presentation: Some(TaxPresentation::AddedSeparately),
         tax_cents: Some(1900),

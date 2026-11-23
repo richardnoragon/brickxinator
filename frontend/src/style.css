@@ -508,3 +508,9 @@ a {
     min-width: 0;
   }
 }
+
+.workflows .audit,
+.workflows section {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

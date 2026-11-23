@@ -1,3 +1,5 @@
+> Preserved historical material: Original napkin notes. For current behavior use [current documentation](Project%20Documents%20Templates/TOC.md) and the root ALPHA_STATUS.md. Later accepted decisions supersede old scope assumptions.
+
 Excellent project. Before writing requirements, architecture, data models, and development roadmap, I'd recommend we perform a structured discovery phase.
 
 Based on your description, Brickxinator appears to be a combination of:

@@ -1,5 +1,7 @@
 # ADR-015: Journal-backed set verification and assembly
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-11-01. Status: implemented engineering decision within the accepted
 set verification, stock integrity and whole-set assembly scope.
 

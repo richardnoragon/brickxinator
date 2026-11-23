@@ -122,7 +122,7 @@ fn ensure(connection: &Connection, force: bool) -> Result<()> {
         [],
         |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
     )?;
-    if force || missing != 0 || dirty || version != 2 || empty {
+    if force || missing != 0 || dirty || version != 5 || empty {
         rebuild(connection)?;
     }
     Ok(())
@@ -130,6 +130,10 @@ fn ensure(connection: &Connection, force: bool) -> Result<()> {
 
 fn selection(query: &Search) -> Result<(String, Vec<Value>)> {
     let mut clauses = vec!["1=1".to_string()];
+    if !query.include_inactive {
+        clauses
+            .push("coalesce(json_extract(d.snapshot_json,'$.lifecycle'),'Active')='Active'".into());
+    }
     let mut values = vec![];
     if let Some(assembly) = query.assembly {
         clauses.push("json_extract(d.snapshot_json,'$.assembly')=?".into());
@@ -379,6 +383,9 @@ impl Context<'_> {
             || matches!(target, Target::UnquantifiedSetLine(_));
         Ok((
             InventoryRow {
+                lifecycle: None,
+                general_available_pieces: None,
+                general_available_weight_mg: None,
                 archived: links.archived || purchase.is_some_and(|p| p.archived),
                 target,
                 kind,
@@ -463,7 +470,10 @@ fn rebuild(connection: &Connection) -> Result<()> {
             state
                 .lines
                 .values()
-                .filter(|line| line.verified.is_some())
+                .filter(|line| {
+                    line.verified.is_some()
+                        && ledger.set_contents().get(&line.holding_id) == Some(copy)
+                })
                 .map(move |line| (line.holding_id, (*copy, line)))
         })
         .collect();
@@ -528,6 +538,7 @@ fn rebuild(connection: &Connection) -> Result<()> {
         row.label = ledger.copy_label(copy.id).unwrap_or_default().to_owned();
         row.assembly = ledger.assembly(*id).ok_or("missing assembly")?;
         row.set_copy_id = Some(*id);
+        row.lifecycle = Some(ledger.lifecycle(*id).status);
         row.verification = Some(
             ledger
                 .verification()
@@ -554,7 +565,37 @@ fn rebuild(connection: &Connection) -> Result<()> {
     connection.execute("DELETE FROM inventory_search_fts", [])?;
     connection.execute("DELETE FROM inventory_search_document", [])?;
     let mut totals = InventoryTotals::default();
-    for (row, extra) in documents {
+    let project_state = crate::project_store::history(connection, &ledger)?;
+    let modern_claims = crate::project_store::enabled(connection)?;
+    for (mut row, extra) in documents {
+        if modern_claims && let Some(h) = row.holding {
+            let claimed = project_state.claimed(row.target.id());
+            let pieces = h
+                .pieces
+                .available(brickxinator_core::inventory::AssemblyState::Loose);
+            let protected = row.set_copy_id.is_some();
+            row.general_available_pieces = Some(if protected {
+                Measure::Known(0)
+            } else {
+                match pieces {
+                    Measure::Known(n) => Measure::Known(
+                        n.checked_sub(claimed)
+                            .ok_or("claims exceed current usable stock")?,
+                    ),
+                    Measure::Unknown => Measure::Unknown,
+                }
+            });
+            row.general_available_weight_mg = Some(if protected {
+                Measure::Known(0)
+            } else if claimed == 0 {
+                h.weight_mg
+                    .available(brickxinator_core::inventory::AssemblyState::Loose)
+            } else if row.general_available_pieces == Some(Measure::Known(0)) {
+                Measure::Known(0)
+            } else {
+                Measure::Unknown
+            });
+        }
         totals.add(&row);
         let location_ids: Vec<String> = row.location.iter().map(|r| r.id.to_string()).collect();
         let location_names = row
@@ -582,10 +623,19 @@ fn rebuild(connection: &Connection) -> Result<()> {
             params![rowid, text],
         )?;
     }
-    let pending_deliveries = purchases
-        .values()
-        .filter(|p| matches!(p.status, Status::Ordered | Status::Shipped))
-        .count() as u64;
+    let fulfilments = crate::fulfilment_store::states(connection, &ledger)?;
+    let mut pending_deliveries = 0;
+    for purchase in purchases.values() {
+        if matches!(purchase.status, Status::Ordered | Status::Shipped) {
+            let state = fulfilments.get(&purchase.id).cloned().unwrap_or_default();
+            if !matches!(
+                state.status(purchase, &ledger)?,
+                "Completed" | "Closed" | "Cancelled"
+            ) {
+                pending_deliveries += 1;
+            }
+        }
+    }
     let incomplete_purchases = purchases
         .values()
         .filter(|p| {
@@ -626,7 +676,7 @@ fn rebuild(connection: &Connection) -> Result<()> {
         [],
     )?;
     connection.execute(
-        "UPDATE inventory_search_state SET dirty=0,format_version=2,dashboard_json=?1 WHERE id=1",
+        "UPDATE inventory_search_state SET dirty=0,format_version=5,dashboard_json=?1 WHERE id=1",
         [serde_json::to_string(&dashboard)?],
     )?;
     Ok(())

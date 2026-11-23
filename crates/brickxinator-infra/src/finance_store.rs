@@ -32,7 +32,10 @@ impl Store {
         require_schema(&tx)?;
         let (state, _) = read_state(&tx, purchase_id)?;
         let purchase = read_purchase(&tx, purchase_id)?.ok_or("purchase does not exist")?;
-        let costs = finance::costs(&purchase, &state.unwrap_or_else(|| State::new(purchase_id)))?;
+        let costs = finance::costs(
+            &purchase,
+            &state.unwrap_or_else(|| State::for_purchase(&purchase)),
+        )?;
         tx.commit()?;
         Ok(costs)
     }
@@ -100,6 +103,9 @@ impl Store {
         }
         let purchase = read_purchase(&tx, command.purchase_id)?.ok_or("purchase does not exist")?;
         let change = finance::prepare(state, &purchase, &command)?;
+        if change.after.method == Method::Volume && !crate::project_store::enabled(&tx)? {
+            return Err("Volume shipping needs schema 13; upgrade first".into());
+        }
         let costs = finance::costs(&purchase, &change.after)?;
         let result = AllocationResult { change, costs };
         let state = &result.change.after;
@@ -128,10 +134,14 @@ fn method_name(method: Method) -> &'static str {
         Method::PieceCount => "PieceCount",
         Method::Weight => "Weight",
         Method::Manual => "Manual",
+        Method::Volume => "Volume",
     }
 }
 
-fn read_state(connection: &Connection, purchase_id: Id) -> Result<(Option<State>, Vec<Revision>)> {
+pub(crate) fn read_state(
+    connection: &Connection,
+    purchase_id: Id,
+) -> Result<(Option<State>, Vec<Revision>)> {
     let mut state = None;
     let mut history = vec![];
     let mut query=connection.prepare("SELECT id,request_key,actor,reason,committed_at,source_snapshot_json,payload_json,result_json FROM shipping_command WHERE purchase_id=?1 ORDER BY sequence")?;

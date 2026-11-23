@@ -332,3 +332,190 @@ These answers supplement the historical discovery record.
 
 Implementation details and evidence are in ADR-019 through ADR-022 and the root
 ALPHA_STATUS.md. No merge/tag/release or real backup timer is implied by this entry.
+
+## Set-copy lifecycle scope revision — 2026-11-22
+
+These are accepted requirements, not claims of implemented behavior.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-136 | Bring whole-set lifecycle into alpha, superseding D-135's post-alpha deferral. Retain permanent copy identities and append lifecycle events for ACTIVE/SOLD/DONATED/LOST/STOLEN/DESTROYED/VOID. | Implementation pending. Archive stays independent and never changes ownership. VOID records an erroneous copy without destructive deletion. |
+| D-137 | No automatic removal of linked part ownership. Require explicit transfer-all, keep-all or custom disposition during a copy lifecycle transition. | Complete sale, incomplete sale with retained parts, and previously parted-out copies must all be supported without hidden stock cascades. Detachment, partial selection and interaction with existing alpha storage/splitting restrictions need clarification. |
+| D-138 | Definition identity remains permanent while metadata is auditable/correctable. All terminal lifecycle states can be reversed through appended correction events referencing the corrected event; never erase the old event. | Exact brand/number mutability and safe reversal of the event's stock effects need clarification. Returns, duplicate merging, valuation/insurance reports and the D-134 draft-purge exception are not implicitly changed. |
+
+See [the lifecycle issue proposal](Issues/set-copy-lifecycle-proposal.md) for the
+accepted behavior, open questions and acceptance outline.
+
+## Lifecycle disposition and correction details — 2026-11-22
+
+These answers resolve the open questions in D-137/D-138. They define alpha
+requirements; no completed implementation or test result is claimed.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-139 | Retained set contents detach into independently movable loose holdings with preserved identity, quantities, condition, location and source history. | Explicit lifecycle exception to D-041/D-066. Preserve historical links; inactive copy assembly/location no longer controls detached stock. Ordinary splitting and relocation of still-linked ACTIVE-copy contents remain deferred. |
+| D-140 | Custom lifecycle disposition allows partial quantities. Alpha controls: Transfer all, Keep all, Custom quantity. | Explicit reviewed movements conserve known quantities and damage; never infer piece/weight conversions, duplicate ownership or invent measurements. No child cost allocation is implied. |
+| D-141 | Lifecycle corrections preview and reverse the referenced event's stock effects only when safe; detect later conflicting changes and require review/resolution otherwise. | Keep original events. A blocked reversal explains the affected stock and changes no ownership/state. Revalidate safe plans atomically; no blind or partial automatic reversal. Actual buyer returns remain deferred. |
+| D-142 | Internal UUIDs never change. Business identifiers such as brand/set number permit audited correction. A physically different set requires audited copy-to-definition reassignment, preserving both definitions and the copy UUID. | Preserve provenance and uniqueness constraints. Reassignment alone never creates/replaces actual contents. Do not add unsupported catalog fields or loose-stock-to-set transfers implicitly. |
+
+## Holdings and allocations scope proposal — 2026-11-22
+
+These are requested alpha requirements; the allocation availability, storage,
+verification and merge policies remain open. They are not implemented behavior.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-143 | Physical stock holdings are the source of owned part quantities; set copies reference stock through quantity allocations. | Set-copy counts and allocations never create a second part balance. The phrase “sets reserve stock” requires clarification against D-112's assembly-based availability. |
+| D-144 | Bring Split Holding, Merge Holdings, Allocate Stock To Set, Remove Allocation From Set and Transfer Allocation Between Sets into alpha. | Supersedes deferral of arbitrary splits and loose-stock reassignment in D-066/D-101; expands lifecycle-only splitting in D-139/D-140. Exact independent-location policy must resolve D-041 before implementation. Preserve identities, audit, provenance, damage and independent units; no over-allocation or invented quantities/costs. |
+| D-145 | Derive current set completeness from expected requirements and current allocations, updating after allocation changes. | Distinguish verification completion from completeness; clarify how D-100/D-107's unfinished/Unknown safeguards gate the projection. No excess-part substitution for missing different parts. MOC/build planning is not implicitly added. |
+
+Details and pending questions: [stock handling issue](Issues/stock-holdings-and-set-allocations.md).
+
+## Allocation, location, verification and merge policies — 2026-11-22
+
+These answers resolve the open policies in D-143–D-145. They supersede earlier
+scope/behavior decisions where stated; implementation and validation are pending.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-146 | Allocations reserve assigned quantities regardless of assembly state. Assembly describes construction; Loose does not mean Available. | Supersedes D-112's assembly-based reservation rule. General availability excludes allocated stock and damaged stock without subtracting their overlap twice. Assembly changes do not create/release allocations. General MOC/build reservations remain outside this set-allocation feature. |
+| D-147 | Allocated stock can be stored independently of the set copy while retaining allocation and ownership. | Supersedes D-041's mandatory shared location and the corresponding D-066 restriction. Partial physical moves need explicit quantity/location representation; no silent deallocation or relocation of all source stock. |
+| D-148 | Preserve explicit physical verification and Unknown/Complete/Incomplete with verification history/timestamp context. Nominal expected/allocated equality is insufficient to establish physical completeness. | Retains D-100/D-107's unverified-versus-missing distinction. Keep allocation coverage separate from verified completeness; relevant stock/allocation edits must re-evaluate or invalidate affected verification coverage. Expected checklists and stated box totals never create owned stock. |
+| D-149 | Allow logical merging of compatible holdings across purchases while retaining underlying source lots, quantities, acquisition history and audit/provenance. | Display a combined physical inventory view with drill-down to every source. Do not destroy source identities, invent per-child costs or average away acquisition history. Preserve source/location layers across later movements, disposition and corrections. |
+
+The stock issue's product questions are resolved. Technical migration and source/
+allocation design must satisfy both stock and lifecycle issues before acceptance.
+
+## Build planning scope proposal — 2026-11-22
+
+Requested alpha expansion; detailed planning policies remain open. This does not
+claim implemented behavior or supersede physical verification safeguards.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-150 | Bring future-use stock reservations, bag/subassembly progress, per-set/global missing-parts planning and a build-status workflow into alpha. | Supersedes former build-planning/bag/subassembly/global-dashboard deferrals in D-009/D-021/D-070/D-071 and the corresponding scope limitation in D-146. Per-piece assembly and instruction-step tracking remain excluded. MOC authoring is not implied. |
+| D-151 | Distinguish reservations of loose stock for future purposes from existing set allocations. Both constrain general availability without changing owned quantities. | Example: 100 usable owned, 60 allocated, 20 reserved, 20 available. Claims cannot double-use stock or exceed known eligible supply. Planning targets, readiness verification and conversion confirmation need clarification. |
+| D-152 | Bags and subassemblies are distinct types of Build Unit. Bag progress: Unopened/Opened/Completed; subassembly progress: Not Started/In Progress/Completed. | Part-level requirements per unit versus progress-only scope needs clarification. Unit/set progress is not physical completeness, part ownership or per-piece assembly tracking. |
+| D-153 | Requested build states: PLANNED, READY_TO_BUILD, IN_PROGRESS, BLOCKED_MISSING_PARTS, COMPLETED, DISMANTLED; readiness is derived from requirements and stock claims. Aggregate procurement needs per set and globally with priority support. | Preserve Unknown/verification distinctions and avoid duplicate demand/claims. Planning gaps versus verified missing stock, readiness evidence and downloadable procurement versus live BrickLink ordering require clarification. Dismantling does not automatically release allocations. |
+
+See [the build-planning issue](Issues/build-planning-reservations-and-units.md)
+for requirements, open questions, dependencies and acceptance outline.
+
+## Build planning clarifications — 2026-11-22
+
+These resolve D-150–D-153's product questions. Implementation and validation are
+pending; no existing runtime behavior or release evidence is implied.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-154 | Plans may target owned copies or unowned/future/hypothetical sets; planning is independent of ownership. | Do not create stock/copies from plans. Ownership labels PLANNED_OWNED/PLANNED_NOT_OWNED stay distinct from progress/readiness. Allocation requires a real copy target; planning can reserve existing eligible stock beforehand. |
+| D-155 | Separate Confirmed Missing, Potential Gap and Unknown/Unverified in dashboards and planning output. | Unverified is not missing; preserve evidence/coverage and avoid double-counting overlapping categories or inferring a complete requirement list from a box total. |
+| D-156 | Alpha bags and subassemblies track progress only. | No per-unit part checklist, instruction parsing or per-piece installed-state requirement. Unit completion does not verify contents. |
+| D-157 | READY_TO_BUILD requires known requirements covered by verified usable committed stock, with new supply reserved and no known shortage. Start Build explicitly and auditably converts reservations into allocations. | PLANNED means analysis unfinished; BLOCKED means known shortage; POTENTIALLY_READY means declared coverage lacks verification. Existing target allocations are not reserved twice. Revalidate claims/verification atomically; no automatic ownership creation. |
+| D-158 | Procurement provides downloadable acquisition lists only; no live marketplace ordering in alpha. | CSV/XML/BrickLink Wanted List/BrickStore are format examples, not authorization for login, carts, ordering, store comparison or price optimization. External-format adapters must validate identifiers rather than guess mappings. |
+
+See [the build-planning issue](Issues/build-planning-reservations-and-units.md)
+for the resolved requirements and acceptance outline.
+
+## Purchase fulfilment, finance and warranty expansion — 2026-11-22
+
+Accepted alpha requirements, not implemented behavior. These supersede earlier
+partial-receipt/reversal and aftercare deferrals in D-049/D-068 and roadmap scope.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-159 | Bring purchase orders, multiple/partial shipments, partial receipts, backorders, receipt reversal, discounts/coupons, refunds/returns and warranty workflows into alpha. | Logistics/expected stock is not ownership. Confirmed receipts create stock once per receipt; old whole-purchase receipt history must migrate without re-creation. |
+| D-160 | Audited receipt reversals compensate the referenced event after impact analysis; validate later allocations/reservations/sales and other dependencies. | Preserve original events and identities. Block unsafe inverses with explanations; no negative stock, implicit claim cancellation or invented refund. |
+| D-161 | Separate physical, financial and warranty flows. Record gross/source amounts, price reductions, net amounts, payments and refunds with audit history. | Refund without return leaves stock unchanged. Return without refund is valid. Existing tax metadata remains informational; no tax/accounting engine is implied. |
+| D-162 | Gift cards and stored-value vouchers are payments; coupons/promotional/loyalty reductions reduce price. | Do not subtract a payment instrument from acquisition value as a second discount. Preserve original amount/payment history. |
+| D-163 | Supplier returns remove selected ownership on confirmed physical handover/dispatch, not planned return or later supplier acknowledgment. | Supplier RETURN_RECEIPT acknowledgment never removes stock twice; physical and refund events remain distinct. |
+| D-164 | Add RETURNED copy-lifecycle state. Preserve the returned copy UUID/history; a physically different warranty replacement receives a new copy UUID. | Explicit receipt/provenance links connect original copy, claim, replacement and finance. No destructive deletion or identity recycling. |
+| D-165 | Order-level discounts/refunds require automatic allocation across invoice lines. Offer Equal, Price Proportional, Piece Count and Weight; default Price Proportional. | Exact-cent largest remainder with stable invoice-order ties. No unapportioned/Manual substitute. Existing shipping allocation is separate. |
+| D-166 | Discounts use pre-discount line prices; refunds use post-discount line amounts for price-based allocation. Missing inputs block allocation, never silently switch methods. | Persist source revisions/method/shares, revalidate stale previews and preserve zero/all-zero safeguards. Do not automatically distribute financial shares into receipt holdings/child-lot costs. |
+| D-167 | Warranty claims are independent: OPEN/SUBMITTED/APPROVED/REJECTED/REPLACEMENT_SENT/COMPLETED, with receipt/return/refund resolution links. | Claim status alone has no stock/finance effect. Genuine replacement receipts enter stock once; no fabricated price/zero valuation. |
+| D-168 | Carrier integration, automatic tracking, marketplace APIs, automated refund synchronization and vendor-specific warranty integrations remain excluded. | Local manual workflows stay offline; no payment processing or live order placement is implied. |
+
+See [the purchase issue](Issues/purchase-fulfilment-finance-and-warranty.md) for
+resolved product requirements, dependencies and acceptance outline.
+
+## Cost provenance scope proposal — 2026-11-22
+
+Requested alpha expansion; shipping-mode, residual-basis, tax/fee and downstream
+reallocation clarifications remain open. This is not implemented behavior.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-169 | Bring audited mixed-lot/child cost allocation into alpha using Manual and Piece Count, preserving source acquisition history. | Supersedes D-067's child-cost deferral. Derived costs do not rewrite paid prices or create ownership. Market-value allocation remains deferred; Equal was illustrative, not a separately requested alpha method. |
+| D-170 | Known child cost basis flows proportionally through supported quantity splits, conserving exact source-layer totals. Logical merges retain every source/cost layer. | Use deterministic exact cents; no inferred piece/weight conversion, duplicated parent/child basis or averaged-away provenance. Residual cost and unknown split basis need explicit handling. |
+| D-171 | Allocation/reallocation/correction events retain source references, method, inputs, date/actor/reason and historical results. | Source financial changes must not erase earlier allocations. Reviewed versus automatic downstream reallocation policy needs clarification. |
+| D-172 | Volume-based shipping is requested for alpha as a proposed new default. Item price/shipping remain separate. | Conflicts with D-043's six-mode default/volume deferral: clarify addition versus replacement, preserving saved choices and missing-volume behavior before implementation. |
+| D-173 | Track item cost, shipping, tax and fees distinctly for source versus landed-cost views. | Clarify tax-inclusive paid-price behavior under D-051/D-161 versus a tax-exclusive engine; never double-count included tax or payments. Implementation/validation pending. |
+
+See [the cost provenance issue](Issues/cost-provenance-allocation-and-landed-cost.md)
+for requirements, pending questions and acceptance examples.
+
+## Import/export and enrichment scope — 2026-11-22
+
+Treat this input as current accepted scope, explicitly revisable during testing.
+Implementation/provider-contract/rights validation remain pending. This does not
+resolve the independently pending cost-allocation questions in D-169–D-173.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-174 | Alpha is import/export-centric and offline-first. External enrichment never becomes authoritative for local stock, ownership, lifecycle, allocations or acquisition costs. | Explicit Import -> Review -> Apply; no mandatory cloud/core dependency or silent external domain writes. |
+| D-175 | Include Markdown export of collection/set pages, purchase history, build notes and missing-parts planning for Obsidian use. Export first; import second. | Obsidian import remains later scope. No plugin, live vault watching or bidirectional sync. UUID frontmatter was a long-term suggestion, not a synchronization requirement. |
+| D-176 | Include LDraw .ldr/.mpd imports, Studio model/parts-inventory imports, BOM extraction/updates and project/build-plan creation. | Requirements never create owned stock. No CAD/geometric validation, instruction generation, per-piece tracking, Studio plugin or live editing sync. MOC BOM import is included; MOC authoring stays excluded. |
+| D-177 | Include one-way Rebrickable catalog, official inventory/BOM enrichment, manual refresh and local caching. | Highest-priority external service. Preserve local UUIDs/overrides and imported source/mapping history; permitted local assets stay usable offline. No profile/collection sync. Validate provider contracts and rights before implementation. |
+| D-178 | Include market-price snapshot storage with source/date/value/condition and appropriate identity/currency/context. | Keep distinct source observations/history; no single true value or overwrite of acquisition cost. No implied market-value cost allocation, real-time feed or live pricing adapter. |
+| D-179 | Include offline BrickLink Wanted List export. BrickLink parts-list exchange is a priority direction; Brick Owl/Peeron/Brickset are medium-priority references, not committed alpha adapters. | Validate external identifier mappings; no guessed part/color codes, marketplace order placement or credential-dependent export. |
+| D-180 | Exclude live sync, automatic collection/profile sync, marketplace transactions, real-time price feeds, Studio/Obsidian plugins and cloud requirements. | Supplements D-168: explicit catalog enrichment is now permitted, but purchase/refund/stock synchronization remains excluded. Core offline behavior and native import safety remain. |
+
+See [the integration issue](Issues/offline-import-export-and-catalog-enrichment.md)
+for accepted boundaries, technical acceptance criteria and source references.
+
+## Design projects, MOCs and layouts — 2026-11-22
+
+Accepted alpha requirements; implementation/validation pending. These extend the
+previous BOM-only MOC/project scope without adding CAD authoring.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-181 | Use a unified Project with Official Set Build/MOC/Train Layout/Diorama/Custom Project types and shared planning, claims, progress, notes and attachments. | Brickxinator performs import/export/BOM/coverage/procurement analysis; external tools remain responsible for geometry editing, rendering, instructions and layout design. |
+| D-182 | MOCs are first-class designs with authorship, source files, notes and versioned BOM snapshots; analysis always targets a specific version. | Preserve version IDs/labels/timestamps/source references. Creating/changing a design never creates ownership; ownership, authorship and progress are separate. Review version changes; do not silently rebase projects or claims. |
+| D-183 | Layouts are inventory-aware projects referencing external files, footprint metadata and explicit/imported requirements. | Include track stock/shortfall/cost analysis; no geometry editor, route/signal simulation or train scheduling. Supersedes the blanket train-planning deferral only for this non-geometric project scope. |
+| D-184 | Projects may directly receive stock allocations; non-set projects need no artificial Set Copy. Official-set projects may link to physical copies. | Extends D-143/D-154/D-157's set/copy-only allocation boundary. Linked project/copy views must not double-count demand or stock claims. Explicit Start Build conversion and verified readiness still apply. |
+| D-185 | Each project represents one planned/build execution. Repeated builds use separate projects sharing a design/BOM version. | Permanent independent project UUIDs, reservations, allocations and progress; shared requirements are not shared physical supply. |
+| D-186 | Completion-cost estimates may use manual unit estimates and selected stored market-price snapshots, keeping unknown prices incomplete. | Preserve source/date/condition/currency context and version basis. Estimates never rewrite paid/allocated acquisition costs, invoke a live feed or resolve the separately pending cost questions. |
+
+See [the design-project issue](Issues/design-projects-moc-versions-and-layouts.md)
+for resolved requirements, dependencies and acceptance outline.
+
+## Cost-policy clarification and implementation start — 2026-11-22
+
+Richard accepted all five proposed cost rules while requesting the local app
+update. These resolve D-169–D-173's open product questions; implementation is
+partial and reported separately in ALPHA_STATUS.md.
+
+| ID | Decision | Consequences |
+| --- | --- | --- |
+| D-187 | Add Volume as a seventh shipping mode and default for new app/API purchases; retain the six existing modes and saved selections. Missing volume leaves allocation incomplete without fallback. | Supersedes D-043's Volume deferral/default for new purchases. Existing purchase history/defaults remain unchanged. Total packaged volume is explicit per invoice line, stored in mL/displayed in L; no inferred box volume. |
+| D-188 | During gradual identification, child cost allocations plus an explicit unassigned residual source balance equal the applicable original basis. | Do not force allocation to unidentified children or count source and derived costs twice. Child-cost event implementation remains pending. |
+| D-189 | Keep informational tax/authoritative paid-price behavior and add separately recorded acquisition fees. | No duplicate included tax, tax-exclusive entry or tax engine. Recorded fee amounts contribute to recorded purchase totals; no unapproved child fee allocation. |
+| D-190 | Later source financial changes require reviewed downstream cost reallocation, not silent automatic child repricing. | Keep historical allocation results; detect stale dependencies and preserve source layers through corrections. Reallocation implementation remains pending. |
+
+
+## Financial and interchange clarification — 2026-11-23
+
+| ID | Confirmed decision | Consequences |
+| --- | --- | --- |
+| D-191 | Preserve authoritative paid invoice-line totals; enter gross amounts separately before new discounts/coupons. | New financial events derive adjusted net values without double-deducting invoice discounts or rewriting recorded paid amounts. |
+| D-192 | Studio's supported LDraw/MPD and parts-list CSV/TSV exports satisfy alpha. | Native `.io` archive compatibility is deferred; do not guess undocumented archive internals. |
+| D-193 | Supplier returns from holdings merged across purchases require explicitly selected acquisition quantities. | No implicit FIFO or proportional source choice. Unknown/insufficient provenance blocks dispatch; quantities and cost layers of other sources remain intact. |
+
+
+## Copy costs and catalog enrichment clarification — 2026-11-23
+
+| ID | Confirmed decision | Consequences |
+| --- | --- | --- |
+| D-194 | Direct copy costs and allocated-part rollups remain separate, drawing from one shared acquisition source budget. | Cost totals count each holding/direct copy share once; rollups are views, never additional allocations. No automatic replacement of part costs or duplication of source basis. |
+| D-195 | Broaden the offline reviewed workflow with Rebrickable color/theme CSV imports and explicit local image-file attachments. | Preserve local overrides and UUIDs; external image downloads remain manual. No online retrieval or synchronization is introduced. |

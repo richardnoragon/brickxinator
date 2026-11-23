@@ -23,6 +23,8 @@ pub struct Details {
     pub description: Option<String>,
     pub release_year: Option<u16>,
     pub theme: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub theme_id: Option<Id>,
     pub stated_piece_count: Option<u64>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -172,6 +174,7 @@ pub fn prepare(
     if after.kind == Kind::Part
         && (after.details.release_year.is_some()
             || after.details.theme.is_some()
+            || after.details.theme_id.is_some()
             || after.details.stated_piece_count.is_some()
             || !after.details.expected_contents.is_empty())
     {

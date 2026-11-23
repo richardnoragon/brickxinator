@@ -48,6 +48,13 @@ const TABLES: &[&str] = &[
     "deleted_request_key",
     "purchase_reconciliation",
     "verification_attribute_revision",
+    "project_command",
+    "physical_operation",
+    "holding_flow",
+    "fulfilment_command",
+    "child_cost_command",
+    "integration_import",
+    "enrichment_command",
 ];
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

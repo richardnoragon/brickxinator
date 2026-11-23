@@ -153,6 +153,7 @@ impl Store {
             return Err("request key already belongs to another command".into());
         }
         let change = catalog::prepare(&definitions, &settings, &command, false)?;
+        validate_theme(&tx, &change.after)?;
         write_definition(&tx, &settings, &change.after)?;
         tx.execute("INSERT INTO catalog_command(id,request_key,actor,reason,target_id,payload_json,result_json) VALUES(?1,?2,?3,?4,?5,?6,?7)",params![command.id.to_string(),command.request_key,command.actor,command.reason,change.after.id.to_string(),serde_json::to_string(&command)?,serde_json::to_string(&change)?])?;
         tx.commit()?;
@@ -172,11 +173,7 @@ impl Store {
         }
         if let Target::Holding(id) = command.target
             && crate::sqlite::has_verification(&tx)?
-            && tx.query_row(
-                "SELECT EXISTS(SELECT 1 FROM verified_content WHERE holding_id=?1)",
-                [id.to_string()],
-                |r| r.get::<_, bool>(0),
-            )?
+            && crate::sqlite::load(&tx)?.set_contents().contains_key(&id)
         {
             return Err("verified set contents inherit their set location and cannot be independently reassigned".into());
         }
@@ -191,6 +188,7 @@ impl Store {
             false,
         )?;
         persist_profile(&tx, &command, &change, None)?;
+        crate::project_store::validate_current(&tx, &crate::sqlite::load(&tx)?)?;
         tx.commit()?;
         Ok(change)
     }
@@ -245,7 +243,7 @@ fn identity_number(settings: &BTreeMap<Id, Record>, definition: &Definition) -> 
         catalog::normalized_number(&definition.details.number)
     }
 }
-fn write_definition(
+pub(crate) fn write_definition(
     connection: &Connection,
     settings: &BTreeMap<Id, Record>,
     r: &Definition,
@@ -303,13 +301,35 @@ pub(crate) fn load_catalog(
         }
         current.insert(record.id, record);
     }
+    if current.values().any(|d| d.details.theme_id.is_some()) {
+        let themes = crate::enrichment_store::load(connection)?;
+        for definition in current.values() {
+            if let Some(id) = definition.details.theme_id
+                && !themes
+                    .get(&id)
+                    .is_some_and(|r| r.kind == crate::enrichment_store::Kind::Theme)
+            {
+                return Err("catalog theme has not been imported or mapped".into());
+            }
+        }
+    }
     if records != current {
         return Err("catalog differs from its immutable audit".into());
     }
     Ok(current)
 }
 
-fn persist_profile(
+pub(crate) fn validate_theme(c: &Connection, definition: &Definition) -> Result<()> {
+    if let Some(id) = definition.details.theme_id
+        && !crate::enrichment_store::load(c)?
+            .get(&id)
+            .is_some_and(|r| r.kind == crate::enrichment_store::Kind::Theme)
+    {
+        return Err("catalog theme has not been imported or mapped".into());
+    }
+    Ok(())
+}
+pub(crate) fn persist_profile(
     connection: &Connection,
     command: &profiles::Command,
     change: &profiles::Change,
@@ -401,6 +421,7 @@ pub(crate) fn load_profiles(
         }
         current.insert(record.target, record);
     }
+
     if records != current {
         return Err("inventory profiles differ from immutable audit".into());
     }

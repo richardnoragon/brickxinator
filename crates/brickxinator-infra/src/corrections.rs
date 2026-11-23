@@ -29,6 +29,13 @@ fn consumed(
                 weight_mg,
                 ..
             } if *source_id == id => Some(if weight { *weight_mg } else { *pieces }),
+            Body::Split {
+                source_id, portion, ..
+            } if *source_id == id => Some(if weight {
+                portion.weight_mg
+            } else {
+                portion.pieces
+            }),
             Body::Stock {
                 holding_id,
                 action: stock::Action::Adjust(adjustment),
@@ -64,6 +71,14 @@ fn independently_observed(
         .iter()
         .filter(|op| !reconciled.contains(&op.id.to_string()))
         .any(|op| {
+            if matches!(&op.body,Body::Merge{sources,..} if sources.iter().any(|s|s.holding_id==id))
+            {
+                return true;
+            }
+            if let Body::ReceiptCorrection { receipt_operation_id, .. } = &op.body
+                && ledger.operations().iter().any(|r| r.id == *receipt_operation_id && matches!(&r.body, Body::Receive { lines, .. } | Body::Delivery { lines, .. } if lines.iter().any(|l| matches!(l.stock, brickxinator_core::ledger::ReceivedStock::Batch { holding_id, .. } if holding_id == id)))) {
+                return true;
+            }
             let changes = match &op.body {
                 Body::Stock {
                     holding_id,
@@ -169,11 +184,15 @@ pub(crate) fn plan(
             let existing = ledger
                 .set_copies()
                 .values()
-                .filter(|copy| copy.invoice_line_id == old.id)
+                .filter(|copy| {
+                    copy.invoice_line_id == old.id
+                        && ledger.lifecycle(copy.id).status
+                            != brickxinator_core::physical::Status::Void
+                })
                 .count();
             let desired = new.copy_count.map_or(existing, |count| count as usize);
             if desired < existing {
-                return Err("copy count cannot discard existing physical copy identities; copy removal and whole-set disposal are deferred. Archiving preserves ownership".into());
+                return Err("copy count cannot delete physical identities; mark an erroneous copy Void through an audited lifecycle correction first".into());
             }
             if desired > 10_000 {
                 return Err("copy reconciliation exceeds 10000 copies".into());

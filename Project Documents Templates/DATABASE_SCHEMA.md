@@ -1,17 +1,40 @@
-# Brickxinator database schema draft
+# Brickxinator database schema
 
-Current implementation (2026-11-01): the authoritative executable schema is
-[migrations 001–012](../migrations). Canonical state uses an immutable typed
-movement journal plus revisioned purchase/settings/catalog/verification/stock/
-shipping commands and derived search. Migrations 009–012 add attachment audit,
-eligible-draft deletion tombstones, acquisition reconciliation links and
-verification identity references. SQLite stores wide quantities in typed JSON
-where needed; do not infer the runtime integer representation from the draft
-column plan below. Native exchange uses the explicit current-schema table/field
-registry in `crates/brickxinator-infra/src/exchange.rs`, never imported SQL.
-See ADR-019 through ADR-022 for implemented recovery/exchange contracts.
+Current executable schema: **18**, updated 2026-11-23. The immutable SQL in
+[migrations 001–018](../migrations) is authoritative. The table sketch below is
+historical design, not deployed DDL. See [ADR-023](ADRs/ADR-023-expanded-alpha-ledgers-and-enrichment.md).
 
-The remaining tables below retain the pre-code engineering design for context.
+## Implemented persistence
+
+- 001–008: stock journal/targets, purchases/receipt provenance/copies, managed
+  settings, catalog/profiles, verification, classification/stock actions, search
+  projections and shipping history.
+- 009–012: managed attachment audit/associations, eligible draft deletion
+  tombstones, acquisition reconciliation and verification identity references.
+- 013: immutable project commands with inventory/profile prefixes; Volume support
+  in the shipping projection while retaining existing saved modes.
+- 014: physical operation metadata prefixes and holding source-flow links.
+- 015: fulfilment commands with canonical purchase snapshots, stock/profile
+  prefixes and exact results; includes aftercare/financial command histories.
+- 016: child-cost commands with immutable source basis and allocation results.
+  Holding and copy shares share the same source/component revision stream.
+- 017: reviewed integration imports, source hashes/cache and catalog effects.
+- 018: color/theme enrichment history with settings prefixes, source hashes and
+  reviewed local-override decisions. Stable theme UUID links live in typed catalog
+  metadata; direct copy costs/rollups use typed cost history, not new stock rows.
+
+Typed JSON retains wide quantities, unknown state and immutable snapshots. Read
+values that exceed JavaScript's exact range are decimal strings. Numeric storage
+must be read from source/migrations, not inferred from the old nullable-INTEGER
+sketch. SQLite foreign keys, envelope checks, audit replay and domain reference
+validation complement one another.
+
+Native exchange uses the fixed registry in
+[exchange.rs](../crates/brickxinator-infra/src/exchange.rs), including all new
+command histories; input cannot supply SQL/schema identifiers. It supports fresh
+collections/identical no-op imports, not arbitrary merges. Snapshots include a
+consistent database, referenced assets and reviewed configuration. Migrations are
+checksummed and append-only; upgrades/restores use maintenance/safety coordination.
 
 ## Historical specification
 

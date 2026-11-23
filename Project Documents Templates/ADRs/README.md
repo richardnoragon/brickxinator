@@ -35,3 +35,6 @@ Alpha application/recovery implementation:
 
 Earlier ADRs retain their implementation-time statements; these records and the
 root ALPHA_STATUS.md describe the subsequent completed work and remaining gates.
+
+
+Current expanded-alpha contract: [ADR-023: ledgers, rollups and enrichment](ADR-023-expanded-alpha-ledgers-and-enrichment.md), schema 18. Earlier dated implementation-time deferrals are historical where this record supersedes them.

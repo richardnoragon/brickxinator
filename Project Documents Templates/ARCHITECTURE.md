@@ -1,58 +1,68 @@
 # Brickxinator architecture
 
-Current implementation reference (2026-11-01): the approved stack and domain
-boundaries below are implemented. Detailed choices subsequently resolved include
-bounded hashed attachments, exact integer/rational quantities, Restic with opt-in
-systemd scheduling, checked migration/restore coordination and native JSON/assets
-exchange. Read ADR-019 through ADR-022 and [ALPHA_STATUS](../ALPHA_STATUS.md) for
-current evidence; “implementation selection” text below is historical design.
+Current implementation, 2026-11-23. [ADR-023](ADRs/ADR-023-expanded-alpha-ledgers-and-enrichment.md)
+supersedes earlier scope/storage/allocation assumptions where noted.
 
-Status: approved functional architecture; detailed implementation design remains to be completed. Updated 2026-10-31. Sources: DECISIONS.md, especially D-086 and D-094–D-117.
+## Runtime
 
-## Runtime and boundaries
+A Rust/Axum loopback API serves local Svelte/TypeScript assets. SQLite uses WAL,
+foreign keys, FULL synchronous mode and FTS5. Native launcher and local Docker
+preview are documented in [INSTALL](../INSTALL.md). One local user/active machine;
+no account, telemetry, required cloud dependency or LAN service.
 
-Svelte/TypeScript browser UI communicates with a Rust/Axum local API. Rust owns domain validation, inventory transactions, SQLite persistence and managed filesystem attachments. API style is versioned REST/JSON. SQLite uses WAL, per-connection foreign keys and FTS5. All domain entities use UUIDv7. UI calculations are previews; persisted stock/cost calculations must be validated by the backend. No Tauri, PostgreSQL, external runtime asset dependency, account system or LAN exposure in alpha.
+Host/Origin validation, process mutation tokens and service-user audit attribution
+protect local operations. Large integer reads use decimal strings where needed.
+UI previews do not authorize stale writes: backend commands revalidate revisions,
+source history and dependencies under transactions.
 
-The launcher starts the loopback service and opens the default browser. Firefox and Chromium are mandatory. Track app-tab liveness; stop 90 seconds after the last tab disconnects, cancelling shutdown on reconnect. A refresh is tolerated; a browser crash eventually expires liveness. Unrelated browser tabs do not control app lifetime. Independent backup jobs do not keep the web service running.
+## Responsibilities
 
-## Domain boundaries
+- **Core:** typed identities/measures, inventory and copy lifecycle, verification,
+  purchase/fulfilment/return/financial rules, projects/claims, exact costing and
+  bounded LDraw/delimited/XML interchange transformations.
+- **Infra:** SQLite command/audit persistence, source-prefix replay, provenance,
+  catalog enrichment, managed files, derived search/rollups, exchange, Restic,
+  coordinated snapshots/upgrades/restore and safety recovery.
+- **App:** CLI, local API/security/liveness and asset serving. Frontend components
+  implement purchase, sets, stock/lifecycle, project, cost and enrichment workflows.
 
-Proposed modules follow domain responsibility, not a plugin framework: catalog/settings; purchases/receipt; stock/adjustments; sets/checklists; lot identification; attachments; search/dashboard; audit; backup/restore. These are implementation organization choices, not separately deployed services. Do not build future CAD/train/MOC/plugin infrastructure in alpha.
+## Authoritative histories and projections
 
-See [DOMAIN_MODEL.md](DOMAIN_MODEL.md) for entities and relationships. Definitions describe items; ownership records actual holdings; inventory state derives availability. Set copies never count as a second copy of detailed parts. Historical acquisition measurements are not current-stock balances. **Inventory derives from inventory movements, never purchase totals.** Replayable balances are projections of immutable typed movement and lifecycle history.
+Inventory operations alone introduce/change owned quantities. Receipt intent,
+expected checklists, reservations, estimates and catalog imports create no stock.
+Holdings are ownership; copy/project assignments reserve quantities independently
+of assembly and location. Source quantities may remain unknown after ambiguous
+movements; no implicit FIFO is used to make a return succeed.
 
-## Transactional integrity
+Purchase/settings/catalog/profile, project, fulfilment, child-cost, integration
+and enrichment histories retain source inputs and results. Atomic transactions
+check global request keys, expected revisions, stock/profile/settings prefixes
+and canonical effects. Repeated identical commands return their original result;
+conflicting payloads do not overwrite it. Corrections append compensating facts.
 
-Receipt, verification correction, lot transfer, ownership adjustment, set-state change and shared-location move must be atomic. Receipt is once per whole purchase; repeat requests cannot duplicate stock. Absolute counts are repeat-safe. Corrections preserve prior values, reason, local identity and timestamp, preview effects and reject impossible balances.
+Search and cost rollups are views. A shared source/component budget covers direct
+copy and holding costs; rollups cannot add the same basis again. Actual allocated
+quantities govern project cost shares. Unallocated/residual/disposed/unknown costs
+are separate. Financial settlement and market estimates do not create ownership
+or silently reprice reviewed acquisition costs.
 
-Separate ownership changes from damage/assembly and classification transfers. Damage retains ownership. Transfers conserve valid known measurements and invalidate affected unknown residual measures without converting units. Expected-checklist edits never alter stock. A stock-bearing archive changes visibility only.
+## Files and integration
 
-Use database foreign keys, constraints and explicit transactions for enforceable invariants. Concrete schema, migration framework, concurrent-tab conflict handling and indexes are implementation design work. SQLite does not imply concurrent network-share operation is supported.
+Managed image/PDF files retain original bytes, generated safe paths, hashes and
+associations. Reviewed catalog/BOM/color/theme imports cache bounded local text
+and preserve unselected overrides/UUIDs. Theme links reference local IDs; external
+IDs require explicit mappings. No remote image fetch or live synchronization.
 
-## Numeric and monetary semantics
+## Recovery
 
-Piece counts are optional whole-number measures; weight is independently optional, entered in g/kg. No automatic count/weight conversion. Derived usable measures must become unknown when required damage/residual measurements are absent. Current totals expose measurement incompleteness and separate mixed-lot weights from identified holdings.
+Immutable checksummed migrations 001–018 are executable schema. Cross-process
+maintenance locks coordinate consistent SQLite/asset snapshots and replacement.
+Upgrades validate safety ZIPs before changes; restore validates manifests/hashes,
+creates undo safety data and uses a durable interrupted-restore journal. Native
+exchange uses a fixed current-schema table registry and no imported SQL.
 
-EUR paid row totals are authoritative. Tax Included/Unknown/Not Applicable/Added Separately is optional metadata and never adds tax twice. Shipping targets invoice lines in all modes; set-copy count is not line brick count. Automatic shares use largest remainder in cents with stable row-order ties. Manual incomplete shares are retained without silent editing and have no complete effective cost. Derived EUR/piece and EUR/kg have more precision than payable amounts and selectable display precision. The schema draft proposes integer pieces, EUR cents and milligrams with exact derived ratios; validate these engineering encodings before schema implementation.
-
-## Files and data ownership
-
-Use configurable XDG per-user data root, SQLite and ordinary managed directories. Copy images/PDFs without altering originals. Proposed layout: database.sqlite, attachments/, config/, imports/, exports/; exact filenames are not a format commitment. Backups include every referenced managed attachment plus database and required configuration.
-
-Store attachment UUID/path/hash/size in SQLite, never image/PDF bytes. Stage file writes and coordinate database references so interruption cannot expose half-created attachments. Restores and snapshots must operate on a consistent database/attachment state; copying a live SQLite file alone is insufficient. File validation, size limits, hash strategy and safe viewer implementation require detailed design.
-
-## Backup and recovery
-
-OS-scheduled backup independent of UI: daily incremental at configurable 03:00 local time, retain 30 recovery points plus required dependencies. Separate full human-accessible monthly snapshot on the first, retain 12. Both schedules run on the first. Coalesce missed work to one current snapshot per due schedule.
-
-Multiple local/external/network destinations; failure never blocks inventory use, but persistent per-target warnings and last-success records are required. Never mistake an unmounted destination for its underlying local directory. The snapshot coordinator creates full ZIPs and invokes a mandatory external incremental tool for daily backup. No backup engine is embedded. ZIP creation alone is not daily backup success; daily external retention is 30 points plus dependencies. Monthly ZIPs remain independent, 12 retained. Exact external executable/adapter is implementation selection.
-
-Restore: validate backup/dependencies, create safety backup, quiesce writes, restore database/attachments coherently, validate result, preserve recovery on failure. Review restored machine-specific paths before enabling destinations. Retention must not remove dependencies required by retained points. See SECURITY.md and TESTING.md.
-
-## Remaining implementation selections
-
-Dependency versions, external incremental executable/adapter, detailed SQL, file limits, UI components and measured performance. Ordered immutable checksummed SQL migrations are required. Detailed field encodings and API are drafted in the linked technical documents. Initial collection expectation is under 10,000 parts; 100,000+ is a growth goal to keep in mind, not a demonstrated capacity. Public reporting contacts remain a release-preparation item.
-
-## Frozen pre-code technical artifacts
-
-[ADR set](ADRs/README.md), [schema draft](DATABASE_SCHEMA.md) and [Rust crate/module plan](RUST_STRUCTURE.md). Native JSON exchange and CSV human export are versioned; future CAD/catalog imports stay deferred. Six domains: Definitions, Ownership, Inventory, Storage, Finance, Audit. Finance does not activate deferred internal mixed-lot cost allocation. All technical drafts are documentation only.
+Restic is an external adapter, not an embedded engine. Daily protection requires
+validated ZIP plus successful backup/check/retention; monthly ZIPs are independently
+restorable. Configuration is reviewed before activation and passwords are not
+embedded in exports. See [security](SECURITY.md), [schema](DATABASE_SCHEMA.md) and
+[current acceptance limits](../ALPHA_STATUS.md).

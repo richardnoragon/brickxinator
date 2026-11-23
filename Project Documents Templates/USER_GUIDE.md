@@ -1,92 +1,142 @@
-# Brickxinator alpha user guide
+# Brickxinator user guide
 
-Guide to the alpha review candidate. Source-build and timer setup instructions
-are in [INSTALL](../INSTALL.md); exact validation/release status is in
-[ALPHA_STATUS](../ALPHA_STATUS.md). UI is English; the supported target is
-Kubuntu 26.04 LTS with Firefox or Chromium.
+Current candidate: 2026-11-23, schema 18. Start with [INSTALL](../INSTALL.md).
+This is a local source/Docker review candidate, not a released installer.
 
-## Start and stop
+## Start and navigate
 
-A launcher starts the loopback-only service and opens your browser. No login or LAN access. Closing the last Brickxinator tab starts a 90-second grace period; reconnect/refresh cancels shutdown. A browser crash also eventually disconnects tabs. Independent backup scheduling continues without the browser service.
+The native launcher opens the local browser app; the Docker preview is at
+http://127.0.0.1:4217. Pages are Dashboard, Purchases, Inventory, Sets, Catalog,
+Projects, Stock & lifecycle, Orders & warranty, Cost allocations, Imports & exports,
+Settings and Recovery. Use a single local collection/machine. Native sessions
+stop after the idle grace; Docker stays running until stopped.
 
-## Buy and receive
+## Record purchases and genuine receipts
 
-Create a purchase draft, record seller/type/country, date, order reference, optional paid prices/shipping/tax and notes. Attach images, paste pictures and add PDF invoices/instructions. Original files remain untouched; copies are managed by the app. Notes/attachments/source URLs can belong to purchase or item.
+Save a draft with whatever is known: seller/date/order reference, notes, invoice
+lines, paid EUR totals, shipping/fees and informational tax. Unknown is not zero.
+Set copy count and detailed part count are separate; stated box counts create no
+actual stock. Attach original photos/PDFs after saving. Eligible never-received
+drafts without lines/attachments may be purged; received history is retained.
 
-Add invoice lines for sets, loose batches or unidentified mixed lots. One line can fund several separately labeled set copies; keep a combined invoice price without inventing copy prices. Statuses: Draft, Ordered, Shipped, Received, Cancelled. Only explicit whole-purchase receipt adds stock. Receiving a set creates its copy, not phantom detailed parts. Partial receipts/reversal are deferred.
+Use Orders & warranty for manual shipments/tracking, partial actual receipts,
+outstanding quantities, backorders and closure/reopening. Select only what
+arrived. Unknown set copy count creates no invented copy identities. A whole-
+purchase legacy receipt cannot be used to duplicate explicit partial receipts.
+Review a receipt reversal/correction when a receipt was mistaken; later stock
+changes, claims or metadata can block an unsafe inverse.
 
-Unknown information is allowed, including otherwise blank drafts with generated IDs. Unknown prices/shipping differ from known zero. Invalid supplied numbers require correction or clearing.
+## Manage stock, copies and verification
 
-## Find and store
+Catalog definitions/checklists describe products. Link actual holdings/copies to
+local definitions, colors, condition and storage in Inventory/Sets. Counts and
+weights remain independent. Verification records absolute observations; expected
+requirements do not manufacture parts. Unverified does not mean confirmed missing.
 
-Dashboard: inventory totals, pending deliveries, unidentified lots, incomplete records and recent purchases. Search is available everywhere; priority filters are number, storage subtree and availability. Other filters include manufacturer, description, color, assembly state, incomplete records, purchase date, seller and condition. Archived data remains searchable.
+In Stock & lifecycle, review splits, compatible merges and detachment of legacy
+set contents into loose holdings. Source history survives; unknown transferred
+dimensions can make residual measurements unknown. Resolve claims explicitly
+before incompatible movements. Assembly, allocation and storage are independent;
+changing assembly does not release a reservation.
 
-Choose nested storage from a tree. Names are managed in settings with duplicate/similarity warnings, never silently corrected. Manufacturer/color/condition use permanent IDs and one protected Unknown choice. Initial conditions New/Used/Mixed; damage is separate.
+For a copy's sale/donation/loss/theft/destruction/void/return, select the real copy
+and explicitly transfer all, keep all or retain custom linked quantities. Retained
+parts become loose. UUID/history remains. Safe corrections reference the terminal
+event; later stock/profile/claim changes may require review instead of restoration.
+Archiving only controls visibility and never removes ownership.
 
-**Alpha restriction: one set copy and all linked contents share one location, even loose. Independent batches move whole; no partial batch splitting.** Newly identified mixed-lot children may move independently after creation.
+## Plan and build
 
-## Verify a set
+Create immutable design/BOM versions and separate execution projects, including
+unowned future plans. Projects can be official builds, MOCs, layouts, dioramas or
+custom work; they do not edit CAD geometry. Reserve usable loose stock, verify it,
+and explicitly Start Build to convert reservations to allocations. Ready requires
+verified usable committed supply and no known shortages.
 
-Copy/create expected contents as an unverified checklist. Expected counts do not create stock. Count this set's actual contents gradually; reassignment of other recorded stock is deferred.
+Review confirmed missing separately from potential gaps/unverified supply. Track
+bags/subassemblies by progress, not per-piece checklists. Manual estimates and
+selected price observations are planning data, not acquisition cost. Export
+procurement lists without marketplace login/order placement. Further integration
+of legacy set verification and project completeness remains acceptance work.
 
-Enter absolute totals: entering 7 twice leaves 7. Correcting to 9 records +2 with reason/timestamp/local user/old/new values. Finish lines explicitly. Expected 10 / counted 7 is 3 unverified until finish, then Short 3. Excess is allowed. Overall Complete Verification is explicit after all lines are finished. Count edits visibly reopen line/overall verification and preserve history; expected edits never change actual stock.
+## Supplier returns and warranties
 
-Assembly is independent: Loose, Assembled, Partially Assembled. Either assembled state makes all actual linked parts unavailable. Loose releases usable actual stock; damage remains unavailable. Already-built unverified sets are valid. Stated box piece counts are displayed separately from verified quantities.
+Create a return plan, select actual stock/copy and review physical handover. Only
+dispatch removes ownership; supplier acknowledgment does not remove it again.
+For merged holdings, explicitly enter acquisition-source quantities from the
+selected order. Unknown/insufficient provenance blocks dispatch; there is no
+implicit FIFO. A dedicated provenance reconciliation editor remains follow-up.
 
-## Sort a mixed lot
+Record warranty status separately. Status alone creates no stock or refund.
+Link actual replacement receipts, returns and financial events as appropriate.
+A physically different replacement receives a new copy UUID; the original remains
+Returned. A correction is not a genuine new receipt.
 
-Original count/weight/cost stay on the purchase history. Identify child batches, preserving source/photos/seller. Transfer known measures without duplicate holdings. If children are unweighed, remaining weight becomes unknown; no automatic piece/weight conversion. Counts and weights are separately reported.
+## Financial adjustments
 
-Known nonzero remainder blocks completion. If unknown residue is physically empty, explicitly confirm emptiness, preserving confirmation/date without inventing measured zero. Later findings use audited Reopen Classification. Child costs may remain unknown; internal lot-cost allocation is deferred.
+In Orders & warranty, enter an audit reason. Original paid invoice amounts remain
+historical facts. Enter separate gross line amounts before new discounts/coupons.
+Financial events use dates/labels and reviewed automatic line allocation: Equal,
+Price Proportional, Piece Count or Weight. Missing inputs block, with no fallback.
+Gift cards/stored-value vouchers are payments, not another discount. Refunds are
+separate from physical returns and can link claims/returns. Correct later dependent
+financial entries before earlier ones; originals remain in history.
 
-## Adjust and archive
+Shipping uses Purchase Level, Equal, Price Proportional, Piece Count, Weight,
+Manual or Volume. New purchases default to Volume; supply total packaged line
+volume or explicitly choose another method. Missing basis stays incomplete.
+Fees are separate and tax information is not added twice.
 
-Broken/Damaged stays owned but unavailable. Lost/Donated/Sold reduce ownership. Reject over-removal; unknown stock must be clarified first. Changes preserve audit history; receipt is never repeated to apply a correction. Stock changes need a reason; descriptive edits can have an optional reason.
+## Cost allocations and rollups
 
-Archive hides clutter but preserves stock totals, attachments and search. Restore archived records with unarchive. Only never-received drafts without lines or attachments may be erased permanently,
-including drafts with entered metadata.
+Choose a purchase/component in Cost allocations, then actual source-derived
+holdings, existing active copies, or both. They share one source budget. Enter
+manual shares or explicit piece-count costing bases; copy costing bases do not
+create or verify stock. Review shares, unallocated source balance and disposed
+cost before applying. Original paid values are not overwritten.
 
-## Costs
+New reviewed allocations supersede old effective results while preserving history.
+Source financial changes can require reallocation; unknown cost is not zero.
+The optional reviewed disposed-cost field supports downstream financial corrections.
+A zero-target/zero-allocation correction can handle a fully refunded source whose
+stock has left without fabricating active inventory.
 
-Prices are EUR paid line totals; optional tax is informational and never added twice. Shipping belongs to purchase, with six line-target modes: Purchase Level (default, no shares), Equal, Price Proportional, Piece Count, Weight, Manual. Allocation never changes paid prices. Manual drafts retain unbalanced shares and show remainder; effective allocated costs wait for completion. Missing automatic inputs produce incomplete status. Rounding shares reconcile exactly.
+Cost rollups show direct copy and actual allocated-part costs separately. Project
+views use their allocated quantities; linked copy direct costs remain in the copy
+view. Collection reviewed totals count each share once. Reservations and market
+estimates stay separate. Reviewed totals can be partial; inspect missing/stale
+coverage and source residuals before interpreting them as complete acquisition cost.
 
-Unit rates EUR/piece and EUR/kg derive only from known valid data, with selectable precision. Purchase-price history shows what you paid, not external market values.
+## Reviewed files, colors, themes and images
 
-## Back up and restore
+Imports & exports accepts scoped, decompressed text files up to 4 MiB: LDraw/MPD,
+Studio-exported CSV/TSV and Rebrickable catalog/inventory/color/theme CSV. Native
+Studio .io is deferred. Choose explicit parts-list columns/inventory/spare policy,
+map local part/color IDs, and save a BOM version before using it in Projects.
 
-Ordinary files/directories under configurable XDG data root. Automatic daily incrementals at configurable 03:00 local time, 30 recovery points plus dependencies; separate first-of-month full snapshots, 12 retained. **Monthly never replaces daily.** Missed work catches up once per due schedule. Daily recovery can require standard backup software; monthly snapshots must remain independently accessible.
+Select catalog/enrichment rows and local targets. Only selected fields change;
+UUIDs/unselected overrides survive refresh. Color names can have an explicit local
+override; protected Unknown cannot be repurposed. RGB/transparency may remain
+Unknown. Themes preserve mapped parents and reject missing parents, duplicate
+provider identities and cycles. Import parents in the batch or map/import them
+first. Catalog definitions can link stable theme UUIDs alongside free text.
 
-Multiple local/external/network destinations; unavailable targets show persistent warning and last-success status without blocking collection use. Restore validates backup, creates safety backup, restores coherent data/attachments and validates result. Review old machine paths before reactivating restored destinations. Brickxinator creates a full ZIP snapshot; a mandatory external incremental backup then protects the daily recovery point. ZIP creation alone does not mean daily backup succeeded. Monthly ZIPs restore independently. Restic is the daily adapter; setup and timer commands are in INSTALL.md.
+Source files/reviewed choices stay cached offline. Attach local PNG/JPEG/WebP
+files to catalog definitions; existing images remain. No external image URL is
+fetched. Wanted List XML requires confirmed BrickLink part/color IDs; save mappings
+for reuse, review positive quantities and download. Local UUIDs/provider IDs are
+not silently substituted. Collection/project Markdown and CSV downloads support
+local notes/Obsidian; live synchronization and Obsidian import are deferred.
 
-## Current correction and recovery controls
+## Recovery and backup
 
-Received purchases use **Review correction** before applying acquisition changes.
-The preview shows residual stock effects and added copies. Existing classified
-children and independently measured stock remain authoritative; a correction
-cannot consume them again. Existing physical copy identities cannot be removed
-by reducing a purchase count. Whole-set sale/donation/loss is deferred.
+Use Recovery to review backup destinations, snapshots, native exchange and restore.
+Destinations start disabled. Daily protection requires validated ZIP plus external
+Restic; keep 30 daily points and 12 independent monthly ZIPs. Configure scheduling
+explicitly; the Docker preview has no independent scheduler.
 
-Archiving hides a purchase/copy from default lists while retaining ownership and
-history. Permanent draft deletion is allowed only for never-received drafts with
-no invoice lines or attachments, even when metadata was entered. Review the
-confirmation: entered metadata and its snapshots are purged; minimal tombstones
-prevent old requests from recreating the draft.
-
-Set checklists can come from definition templates or another owned copy. Correct
-part/color identity, retire/restore lines and rename copies without erasing their
-history. Retirement retains actual stock. After a part disposal, use the explicit
-fresh physical-count review to reconcile a new measurement; ordinary count entry
-will not silently recreate removed parts.
-
-Recovery contains backup destinations, schedule time, persistent status, manual
-backup, snapshots and native/CSV exchange. Destinations start disabled and default
-to the initial working directory's `backups/daily` and `backups/montly`. Add local,
-external-drive or share destinations; external/share destinations require an
-exact mounted path. Install the separate user timer as described in INSTALL.
-Keep the Restic password independently; it is not included in snapshots.
-
-Native export contains versioned JSON and original managed assets. Import
-initializes a fresh collection or accepts an identical re-import; it does not
-merge conflicting collections. CSV reports current inventory only. Restore
-validates the archive and creates a safety snapshot before replacement; restored
-backup configuration stays inactive for review. Use `recover` if interrupted.
+Native import accepts a fresh collection or identical no-op, not a collection
+merge. Restore validates and creates undo safety data; interrupted restore requires
+recover. Restored machine configuration stays inactive pending review. Never copy
+a live SQLite file or put the active database on a filesystem-sync/NAS share.
+See INSTALL.md for commands and ALPHA_STATUS.md for validation/release limits.

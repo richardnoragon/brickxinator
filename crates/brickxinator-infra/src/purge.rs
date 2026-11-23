@@ -82,7 +82,15 @@ impl Store {
         if crate::sqlite::metadata_key_exists(&tx,&command.request_key)? || tx.query_row("SELECT EXISTS(SELECT 1 FROM purchase_command WHERE request_key=?1) OR EXISTS(SELECT 1 FROM inventory_operation WHERE request_key=?1)",[&command.request_key],|r|r.get::<_,bool>(0))? {return Err("purge request key already belongs to another command".into());}
         let purchase = read_purchase(&tx, command.purchase_id)?.ok_or("purchase does not exist")?;
         purchase.check_revision(command.expected_revision)?;
-        if purchase.status == Status::Received || !purchase.draft.lines.is_empty() {
+        let fulfilment = crate::fulfilment_store::states(&tx, &crate::sqlite::load(&tx)?)?
+            .remove(&purchase.id)
+            .unwrap_or_default();
+        if purchase.status == Status::Received
+            || !purchase.draft.lines.is_empty()
+            || !fulfilment.receipts.is_empty()
+            || !fulfilment.financial.is_empty()
+            || !fulfilment.returns.is_empty()
+        {
             return Err("only never-received drafts without lines may be purged".into());
         }
         // The insertion trigger also rejects attachments and receipt references.
@@ -94,6 +102,10 @@ impl Store {
             "DELETE FROM shipping_allocation WHERE purchase_id=?1",
             [&id],
         )?;
+        if crate::fulfilment_store::enabled(&tx)? {
+            tx.execute("INSERT INTO deleted_request_key(request_key,purchase_id) SELECT request_key,purchase_id FROM fulfilment_command WHERE purchase_id=?1",[&id])?;
+            tx.execute("DELETE FROM fulfilment_command WHERE purchase_id=?1", [&id])?;
+        }
         tx.execute("DELETE FROM purchase_command WHERE purchase_id=?1", [&id])?;
         tx.execute("DELETE FROM purchase WHERE id=?1", [&id])?;
         tx.commit()?;

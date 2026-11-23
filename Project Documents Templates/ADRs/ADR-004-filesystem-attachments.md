@@ -1,5 +1,7 @@
 # ADR-004: Filesystem attachments with database metadata
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-10-31. Status: Accepted user choice; crash protocol is technical design. Source decisions: D-075, D-121.
 
 ## Context

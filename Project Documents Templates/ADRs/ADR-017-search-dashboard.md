@@ -1,5 +1,7 @@
 # ADR-017: Rebuildable inventory search and dashboard read models
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-11-01. Status: implemented engineering decision within the accepted
 FTS5/current-stock/search/dashboard scope. These are library workflows, not a UI.
 

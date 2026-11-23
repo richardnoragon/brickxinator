@@ -19,8 +19,11 @@ fn native_round_trip_preserves_audit_assets_unknowns_and_idempotency() {
         body: PurchaseAction::Create {
             purchase_id: purchase,
             draft: Draft {
+                fees_cents: None,
+                shipping_method: None,
                 seller: Some("=formula,\"quoted\"".into()),
                 lines: vec![brickxinator_core::purchases::InvoiceLine {
+                    volume_ml: None,
                     source_url: None,
                     notes: String::new(),
                     id: Id::new(),

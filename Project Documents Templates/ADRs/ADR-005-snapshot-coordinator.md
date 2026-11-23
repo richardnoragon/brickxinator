@@ -1,5 +1,7 @@
 # ADR-005: Snapshot coordinator and external backup hooks
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-10-31. Status: Accepted architecture and clarified mandatory external incremental policy. Source decisions: D-074, D-079–D-088, D-122, D-128.
 
 ## Context

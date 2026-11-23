@@ -13,6 +13,7 @@ fn main() -> Result<()> {
     let mut store = Store::create(&path)?;
     let id = Id::new();
     let sets = InvoiceLine {
+        volume_ml: None,
         source_url: None,
         notes: String::new(),
         id: Id::new(),
@@ -26,6 +27,7 @@ fn main() -> Result<()> {
         assembly: AssemblyState::Assembled,
     };
     let lot = InvoiceLine {
+        volume_ml: None,
         source_url: None,
         notes: String::new(),
         id: Id::new(),
@@ -39,6 +41,8 @@ fn main() -> Result<()> {
         assembly: AssemblyState::Loose,
     };
     let draft = Draft {
+        fees_cents: None,
+        shipping_method: None,
         seller: Some("Demo seller".into()),
         shipping_cents: Some(699),
         lines: vec![sets, lot],

@@ -4,6 +4,14 @@ Review date: 2026-11-01. Project code is GPL-3.0-or-later. Dependency license
 declarations below come from pinned package metadata and registry declarations; upstream packages carry
 their own copyright and license texts. Dependencies and tools are not vendored.
 
+## Source synchronization note — 2026-11-23
+
+The expanded implementation added no dependency-lockfile changes. The advisory
+results below remain dated 2026-11-01; documentation synchronization does not
+constitute a fresh vulnerability scan. Refresh advisory/content evidence before
+release. Provider data/images retain their own rights; file adapters do not grant
+redistribution rights or download catalogs/images automatically.
+
 ## Advisory checks
 
 - cargo-audit 0.22.2: 137 lockfile packages; no vulnerabilities or informational warnings.

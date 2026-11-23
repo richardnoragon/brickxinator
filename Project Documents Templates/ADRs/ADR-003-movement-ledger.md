@@ -1,5 +1,7 @@
 # ADR-003: Movement-based inventory source of truth
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-10-31. Status: Accepted user choice; typed movement design is draft. Source decisions: D-120.
 
 ## Context

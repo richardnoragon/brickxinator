@@ -10,9 +10,9 @@ remain below; later ADRs and decisions supersede earlier planning text. The exis
 - [README](README.md): purpose, confirmed alpha scope, platform and status.
 - [DOMAIN_MODEL](DOMAIN_MODEL.md): entities, relationships, quantities and state invariants.
 - [ARCHITECTURE](ARCHITECTURE.md): approved stack, boundaries, transactions and remaining technical selections.
-- [Architecture decision records](ADRs/README.md): design and implementation decisions through ADR-022.
-- [DATABASE_SCHEMA](DATABASE_SCHEMA.md): table/field draft, movement ledger, indexes and exchange/snapshot contracts.
-- [RUST_STRUCTURE](RUST_STRUCTURE.md): three-crate workspace plan and current implementation reference, domain modules, REST API and implementation sequence.
+- [Architecture decision records](ADRs/README.md): design and implementation decisions through ADR-023.
+- [DATABASE_SCHEMA](DATABASE_SCHEMA.md): implemented migrations 001–018, typed history contracts and historical table sketch.
+- [RUST_STRUCTURE](RUST_STRUCTURE.md): implemented three-crate workspace and preserved historical plan, domain modules, REST API and implementation sequence.
 - [ROADMAP](ROADMAP.md): implementation sequence and deferred scope.
 - [USER_GUIDE](USER_GUIDE.md): daily workflows and current alpha controls.
 
@@ -37,4 +37,9 @@ remain below; later ADRs and decisions supersede earlier planning text. The exis
 
 ## Readiness
 
-Functional and technical architecture foundations are documented before coding. Exact dependency pins/executable DDL, external incremental adapter and file limits remain engineering selections. Full ZIP coordinator plus mandatory external daily incrementals is fixed; no embedded backup engine. Reporting destinations and conduct enforcement must be set before public participation/release. No application or scheduled backup has been created during discovery.
+The source candidate is implemented and running locally with schema 18. Latest
+feature evidence is 184 Rust tests and 18 browser scenarios. Remaining expanded
+acceptance, desktop review/reporting/release gates are in ALPHA_STATUS.md.
+Discovery notes, older ADRs and versioning templates retain their actual dates;
+ADR-023/current operational documents supersede old feature deferrals. Backups
+start disabled and require explicit reviewed activation. No release/tag exists.

@@ -18,6 +18,8 @@ fn entered_metadata_can_be_purged_but_retries_cannot_resurrect_it() {
         body: PurchaseAction::Create {
             purchase_id: id,
             draft: Draft {
+                fees_cents: None,
+                shipping_method: None,
                 seller: Some("private seller details".into()),
                 notes: "private notes".into(),
                 shipping_cents: Some(500),

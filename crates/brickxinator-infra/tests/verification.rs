@@ -27,7 +27,10 @@ fn setup(assembly: AssemblyState) -> (tempfile::TempDir, std::path::PathBuf, Sto
             body: PurchaseAction::Create {
                 purchase_id: purchase,
                 draft: Draft {
+                    fees_cents: None,
+                    shipping_method: None,
                     lines: vec![InvoiceLine {
+                        volume_ml: None,
                         source_url: None,
                         notes: String::new(),
                         id: Id::new(),
@@ -109,6 +112,7 @@ fn reusable_definition_checklist_copies_are_independent_and_never_owned_until_co
                     description: None,
                     release_year: None,
                     theme: None,
+                    theme_id: None,
                     stated_piece_count: Some(451),
                     expected_contents: vec![
                         catalog::TemplateLine {

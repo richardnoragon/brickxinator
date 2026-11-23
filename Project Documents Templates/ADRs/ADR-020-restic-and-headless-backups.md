@@ -1,5 +1,7 @@
 # ADR-020: Restic, independent schedules and destination safety
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-11-01. Status: implemented. Restic and default paths were explicitly
 selected by Richard; scheduling mechanics are engineering decisions.
 

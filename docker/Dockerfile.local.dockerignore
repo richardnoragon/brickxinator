@@ -1,0 +1,7 @@
+**
+!target/
+!target/release/
+!target/release/brickxinator-app
+!frontend/
+!frontend/dist/
+!frontend/dist/**

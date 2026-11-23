@@ -1,20 +1,18 @@
 # Security and data protection
 
-Current implementation (2026-11-01): loopback binding, exact Host/Origin checks,
-mutation tokens, local-user attribution, CSP and bounded image/PDF storage are
-implemented. File hashes, journal replay, exclusive maintenance, validated safety
-snapshots, rollback recovery and checksummed migrations are tested. Daily backup
-uses external Restic with a private generated password file; configuration/ZIPs
-contain only its path. External/share mount checks precede writes and Restic
-commands; no remote repository URL adapter is implemented.
+Current candidate, 2026-11-23, schema 18: loopback Host/Origin checks, mutation
+tokens, service-user audit attribution, bounded hashed files and exclusive
+maintenance/recovery remain implemented. Reviewed import/enrichment validates
+source formats/hashes, local identities, hierarchy and settings prefixes; it does
+not fetch remote images. Stock, return, financial and cost commands revalidate
+expected revisions/request keys/dependencies atomically. Restic credentials are
+private files referenced by path, not embedded in snapshots/exports.
 
-Dependency review found zero Rust advisories and zero production npm advisories;
-two low build-tool findings remain documented in [THIRD_PARTY](../THIRD_PARTY.md).
-Full test/platform limits are in [ALPHA_STATUS](../ALPHA_STATUS.md). No version is
-released. Richard explicitly deferred the private reporting destination; it must
-be supplied before release. Do not invent an address or disclose sensitive data
-in public issues. Requirements below preserve the original security baseline;
-references to undecided adapters are superseded by ADR-020.
+Actual checks/desktop limits are in [ALPHA_STATUS](../ALPHA_STATUS.md). Dependency
+advisory results retain their dated review in [THIRD_PARTY](../THIRD_PARTY.md),
+not an implied fresh zero-vulnerability assertion. No release exists. Private
+reporting remains explicitly deferred and must be finalized before release;
+never publish private collection data or sensitive reports in public issues.
 
 ## Historical specification
 

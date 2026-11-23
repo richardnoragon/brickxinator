@@ -1,82 +1,113 @@
-# Brickxinator alpha domain model
+# Brickxinator domain model
 
-Current conceptual specification, consolidated after 15 discovery rounds on 2026-10-31. DECISIONS.md retains rationale/history. This is a design foundation, not an implemented SQL schema.
+Current implementation contract, 2026-11-23. See [ADR-023](ADRs/ADR-023-expanded-alpha-ledgers-and-enrichment.md),
+[DECISIONS](DECISIONS.md), [executable schema](../migrations) and
+[remaining acceptance work](../ALPHA_STATUS.md).
 
-**Inventory is calculated from immutable inventory movements, not purchase rows.** Current owned/damaged/availability balances are replayable projections; purchase measurements remain provenance. All domain entity IDs are UUIDv7. See [schema draft](DATABASE_SCHEMA.md) and [ADRs](ADRs/README.md).
+## Identity and physical truth
 
-## Entities and relationships
+Domain entities use immutable UUIDv7 IDs. Business identifiers/metadata can be
+corrected through audit history. Catalog definitions/templates describe products;
+they do not create stock. Physical set copies are separate from definitions and
+from detailed parts. An unknown copy count creates no fictitious copies.
 
-| Entity | Key information | Relationships / constraints |
-| --- | --- | --- |
-| Manufacturer, Color, Condition | Permanent ID, display name, archive status, protected-system flag | Settings-managed; one protected Unknown per vocabulary. New/Used/Mixed initial conditions. Historical references survive rename/archive; archived values unavailable for new selection. |
-| PartDefinition | ID, manufacturer, part number, description, images as applicable | Exists without ownership. Manufacturer/part number identify known parts; color/condition distinguish stock. Incomplete identities never auto-merge; manual linking audited. |
-| SetDefinition | ID, manufacturer, set number, name, year, theme, stated piece count, instructions, reusable expected contents | Separate namespace from part numbers and separate from owned set copies. No definition creates stock. |
-| Purchase | ID, status, seller/name/type/country, date, order number, EUR currency, optional shipping, tax status/amount/rate, notes, archive state | Has invoice lines and attachments. Status Draft/Ordered/Shipped/Received/Cancelled. Unknown fields and blank drafts allowed. |
-| InvoiceLine | ID, purchase ID, stable row order, description/kind, optional copy quantity, brick count, weight, total paid cents | Price-bearing source record. Copy count and brick count are distinct. Can fund several independent set copies or holdings. No invented per-copy cost. |
-| SetCopy | Permanent ID, display label, definition if known, source invoice line, condition, assembly state, shared location | Initially numbered label, freely renameable. Receiving creates copy only. Owns checklist and actual verified contents; not a second part balance. |
-| Checklist / ChecklistLine | Set copy, expected part/color/count where known, verified actual count, line-finished flag, history | Copied definitions are expected/unverified only. Count entry absolute. Overall completion explicit after all active lines finished. Count edits reopen affected line and overall verification visibly. |
-| Verification / StockCorrection | Set/checklist/actual-stock references, previous/new values, timestamp, local user, mandatory stock-change reason | Newly observed set contents recorded once. Existing-stock reassignment deferred. Expected changes never mutate actual stock. |
-| StockBatch | ID, source invoice line, optional parent lot/set copy/part definition, color, condition, location, optional owned count/weight, damaged measures, measurement validity | Current holding separate from acquisition. May be unidentified. Set-linked contents inherit set location; independent batch has one location. |
-| IdentificationTransfer | Parent lot, child batch, extracted measures, validity effects, timestamp and provenance | Conserves valid known measurements. Missing extraction measure invalidates affected residual measure, never estimates. Original purchase/photos/seller/cost links retained. |
-| ClassificationEvent | Lot, complete/reopen action, confirming local user, timestamp, reason | Known nonzero residue blocks completion. Unknown residue may be physically-empty confirmed without fabricating measured zero. Reopen preserves prior confirmation. |
-| StockMovement | Target holding, operation, owned/usability deltas or before/after facts, timestamp/user/reason | Receipt, Lost, Broken, Donated, Sold, Correction, identification transfer. Transfer/damage differ from ownership disposal. Reject impossible balances. |
-| Receipt | Purchase, effective receipt record, timestamp, linked stock movements | Whole purchase once. Repeated submissions cannot receive again. Partial receipt/reversal deferred. |
-| Location | Permanent ID, parent ID, display name, archive state | Tree without cycles; managed names with duplicate/similarity warnings, no silent correction. Set/contents share one location. |
-| Attachment / Association | Managed path, type, original name, integrity data, associated records | Images, pasted images, PDF invoices/instructions. Shared associations preserve provenance without duplicating stock or price. Retained on archive. |
-| ShippingAllocation / Share | Purchase method, invoice-line target, share cents, complete/incomplete state | Purchase Level, Equal, Price Proportional, Piece Count, Weight, Manual. Manual draft shares untouched; complete shares reconcile exactly. |
-| Revision | Record, previous/new values, timestamp/local user, reason where required | Immutable history with corrected current view. Stock correction reason mandatory; descriptive reason optional. |
-| BackupDestination / BackupRun | Destination and reviewed activation, schedule kind, recovery point, dependencies, success/failure/last success | Local/external/network targets. 30 daily plus baseline dependencies; 12 independent full monthly points. Implementation engine pending. |
+Holdings represent owned parts/residue. Count, milligrams and damaged subsets are
+independent; Unknown is not zero. No piece/weight conversion is inferred. Damage
+reduces usable stock while remaining owned. Classification, splits, merges,
+verification and disposal conserve recorded quantities or explicitly preserve
+measurement uncertainty. Merges retain source identities/cost layers. Ambiguous
+mixed-source quantities stay unknown; returns cannot silently choose FIFO.
 
-These are conceptual entities, not a requirement for one table each. DATABASE_SCHEMA.md now drafts columns/indexes/transactions. Immutable ordered migrations must preserve the rules below. Current quantity fields on holdings mean derived projection values, not editable sources independent of the journal.
+Allocations/assignments reserve stock independently of construction state and
+location. Loose does not mean unallocated. Legacy set-verified holdings have an
+explicit assignment until detached; project claims represent quantity-based
+reservations/allocations. Their remaining integration limits are documented.
 
-## Purchase versus ownership
+## Set-copy lifecycle and verification
 
-Draft/Ordered/Shipped purchases do not increase inventory. Explicit whole-purchase receipt introduces holdings; set receipt introduces only owned SetCopy records, not expected detailed parts. A line with three sets and EUR 300 creates three independent copies with unknown individual price, retaining EUR 300 once at the invoice line.
+Active copies may become Sold, Donated, Lost, Stolen, Destroyed, Void or Returned.
+Never delete a received identity. Disposal explicitly transfers, keeps or
+partially retains linked holdings; retained stock becomes loose. Corrections
+reference prior events and restore effects only if stock, claims and metadata
+remain safe. Archiving only controls visibility.
 
-Acquisition facts are historical. Corrections append revisions and reconcile stock after a preview. They never replay receipt or erase original measurements. Reject corrections below already consumed/transferred facts when no valid reconciliation exists. Child transfers are not an additional consumption of their own destination holdings.
+Assembly describes construction. Verification records observed reality, with
+unknown/incomplete/complete evidence independent of expected BOM coverage.
+Expected checklist changes do not create stock; counts are absolute observations.
+Later stock changes can require reconciliation rather than an implicit recount.
+Audited reassignment to a different definition remains follow-up acceptance work.
 
-Cancelled purchases do not create stock. Received purchases cannot be receipt-reversed in alpha. Sold/Donated/Lost are separate stock events, not edits to the purchase quantity. Sale/refund accounting is outside scope.
+## Projects and planning
 
-## Set verification and availability
+Each project is one execution (Official Set Build, MOC, Train Layout, Diorama or
+Custom), referencing an immutable design/BOM version. Multiple executions may
+share a version. Plans can be unowned. Official builds may link real copies;
+other projects receive allocations directly without artificial copies.
 
-Assembly: Loose, Assembled, Partially Assembled. Verification: Not Started, In Progress, Completed. They are independent; already-built unverified sets are valid. All actual linked parts are unavailable in either assembled state. Loose releases only otherwise usable actual stock. No per-part assembly allocation.
+Reservations hold future supply; allocations assign actual quantities. Both
+reduce generally available supply. Verified usable reserved stock and no known
+shortages are required for Ready To Build; Start explicitly converts reservations
+to allocations. Confirmed missing, potential gap and unverified assignment are
+separate. Bags/subassemblies track progress, not per-part checklists or geometry.
+Market observations/manual estimates inform planning, never acquisition cost.
 
-Expected checklist contents are not owned. Verification counts are absolute: 7 entered twice stays 7; 7 → 9 is an audited +2 correction. Verification records contents of this set, not reassignment from other stock.
+## Purchases, returns and finance
 
-Line finish is explicit. Expected 10 / counted 7 / unfinished means 3 unverified, never automatically missing. Finish permits Short 3. Counted 12 permits Excess 2. Complete Verification is a separate explicit action after every active line is finished. Expected/verified count edits visibly reopen the line and overall verification; expected edits alone never change actual balances.
+Orders describe intent; only actual receipts create ownership. Partial receipts,
+shipments/backorders and closure remain separate. The original whole-purchase
+receipt is a preserved historical fact, not an alternate way to duplicate partial
+receipts. Reviewed reversal compensates a mistaken receipt; dependent stock
+movements/claims can block it.
 
-Stated box piece counts stay separately labeled; do not add them to actual verified parts. Definitions, set-copy counts and checklist counts are not additive part holdings.
+Supplier return plans do not change stock. Actual dispatch removes selected
+ownership once; acknowledgment does not repeat removal. Merged returns explicitly
+identify acquisition quantities and cannot exceed known source availability.
+Returned copies retain UUIDs. Genuine warranty replacement receipts create new
+physical identities; warranty status alone creates neither stock nor refunds.
 
-## Damage and measurements
+Original paid invoice-line amounts remain historical facts. Explicit gross
+amounts precede new discounts/coupons. Refunds are financial, independent of
+returns; payments/gift cards/vouchers are settlement, not another price reduction.
+Automatic financial allocation supports Equal, Price Proportional, Piece Count
+and Weight, with exact stable cent handling and no missing-input fallback.
+Later dependent entries must be corrected before earlier ones.
 
-Piece count and g/kg weight are independently optional. Both describe the same stock; no conversion between them. Unknown differs from measured zero. Counts are whole numbers; malformed/negative supplied quantities are invalid.
+Shipping has seven modes: Purchase Level, Equal, Price Proportional, Piece Count,
+Weight, Manual, Volume. New purchases default to Volume; missing volume remains
+incomplete. Tax stays informational; fees are separate.
 
-Damage is separate from condition/assembly: 100 owned, 2 damaged, loose yields 98 available. Assembly and damage overlap without double-subtraction. Unknown damaged weight makes usable weight unknown when applicable. Availability filters: Available, In Assembled Set (including partially assembled), Broken/Damaged, Unknown. Filters can overlap; dashboard totals must not sum them as disjoint ownership buckets.
+## Cost provenance and rollups
 
-Search combines known measures for matching stock while exposing missing coverage; unidentified mixed-lot weight stays separate from identified stock. Original acquisition measurements never substitute for current residual measures.
+Derived Manual/Piece Count allocations assign source/component budgets to genuine
+holdings and active copies of the acquisition. Copy piece-count inputs are
+explicit accounting bases, not physical verification. Direct copy and part shares
+share the same budget; residual and disposed costs are explicit. Reallocation
+appends history, preserves original paid amounts and requires source/stock
+revision checks. Safe copy lifecycle corrections restore cost effects; reviewed
+cost-only corrections can handle refunded sources with no active targets.
 
-## Lot conservation and location
+Holding/copy/project rollups are views. Direct copy cost and allocated-part cost
+stay distinct; collection totals count each share once. Project shares use actual
+allocated quantities and exact rounding with an unallocated-stock remainder.
+Reservations/market estimates are not owned acquisition cost. Missing or stale
+cost information is shown, not converted to zero.
 
-Source residual plus transferred children conserves every valid known measure, except explicit separately audited ownership adjustments. Reject extraction above known remainder in the same unit. After unweighed extraction from a 5 kg lot, preserve acquisition 5 kg but current residual weight is unknown; never estimate 4.2 kg.
+## Catalog enrichment and files
 
-Known nonzero residue prevents classification completion. For unknown residue, explicit physical-empty confirmation closes the current residual holding without rewriting unknown historical measurements into measured zero. Reopen is audited and does not itself invent stock.
+Reviewed imports enrich local definitions, BOM versions, colors and themes.
+External IDs are explicit mappings, never substituted for local UUIDs. Source
+files, hashes and reviewed field choices persist. Color names/metadata and theme
+parents retain unselected local overrides. Protected Unknown cannot be repurposed.
+Theme links use stable UUIDs alongside legacy free text. Local images/PDFs retain
+original bytes, hashes and associations; no external image fetch is performed.
 
-Identified child batches inherit location and can then move whole. A single batch cannot be partially split across locations. A set copy and all linked parts always share its location, even loose. Arbitrary batch splitting and independent set-content movement are deferred.
+## Recovery and scope
 
-Mixed-lot cost stays on its invoice line; child costs can remain unknown. Internal child-cost allocation is deferred, distinct from purchase shipping allocation.
+SQLite command/movement histories are authoritative; search/cost rollups are
+rebuildable. Upgrades, snapshots, native exchange and restore validate histories
+and referenced assets before replacing data. Restic daily protection and monthly
+ZIPs are separate. Filesystem sync of the live database is unsupported.
 
-## Costing
-
-Paid invoice-line total is authoritative EUR money. Optional tax Included/Unknown/Not Applicable/Added Separately is informational, never an extra addition to already-paid prices. Purchase total is paid line totals plus shipping, with incomplete status if unknown inputs remain.
-
-All shipping modes target invoice lines. Equal means per line. Price mode uses known line paid totals, not invented per-copy prices. Piece mode needs known line brick count, not set-copy quantity. Weight uses known line weight. Missing inputs/all-zero basis produce incomplete calculation; known zero basis gets zero share. Largest-remainder cents, stable row-order ties. Manual drafts keep entered shares and show remainder; effective allocated costs unavailable until balanced. Purchase Level computes no line shares.
-
-Unit costs derive EUR/piece and EUR/kg only from valid positive acquisition measures and known costs. Preserve higher precision internally, configurable display precision. Shared prices do not justify invented individual-copy rates. Historical paid-price reporting is separate from external market prices, which are deferred.
-
-## Archive and audit
-
-Archiving changes visibility, never ownership or balances. Retain attachments, searchability and unarchive. Referenced vocabulary values retain IDs and historical links. Empty never-received drafts can be permanently deleted; linked history/stock must not be erased.
-
-## Implementation decisions still to record
-
-Executable SQL/constraint verification, dependency pins, attachment limits and external incremental adapter. Schema encoding/index/API proposals are documented in DATABASE_SCHEMA.md and RUST_STRUCTURE.md; validate them before implementing immutable migrations. Backup architecture is fixed: full ZIP coordinator plus mandatory external daily incrementals and independent monthly ZIPs. Use atomic transactions for stock operations and staging for files. These are design tasks against established functional constraints, not reasons to restart broad discovery.
+File limits, unresolved reconciliation/UI work and release gates are tracked in
+ALPHA_STATUS.md. Discovery-era deferrals do not override later accepted decisions
+or the current tested implementation.

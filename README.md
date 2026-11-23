@@ -1,125 +1,131 @@
 # Brickxinator
 
-Offline brick inventory and collection management for LEGO, BlueBrixx and
-compatible systems. Copyright (C) 2026 Richard. GPL-3.0-or-later; see [COPYING](COPYING).
+Offline brick inventory, collection and build planning for LEGO, BlueBrixx and
+compatible systems. GPL-3.0-or-later; see [COPYING](COPYING).
 
-The `0.1.0-alpha.1` implementation is being prepared for review. **No alpha release
-or tag has been published.** Review [draft PR #1](https://github.com/richardnoragon/brickxinator/pull/1). See [completion evidence](ALPHA_STATUS.md),
-[source installation](INSTALL.md) and the [project specifications](Project%20Documents%20Templates/TOC.md).
-The public repository is [richardnoragon/brickxinator](https://github.com/richardnoragon/brickxinator).
+**Status, 2026-11-23:** `0.1.0-alpha.1` source review candidate, schema **18**.
+No release or tag has been published. Work is reviewed on `alpha-foundation` in
+[draft PR #1](https://github.com/richardnoragon/brickxinator/pull/1).
+See [current evidence and limits](ALPHA_STATUS.md), [installation](INSTALL.md),
+[the user guide](Project%20Documents%20Templates/USER_GUIDE.md) and
+[documentation index](Project%20Documents%20Templates/TOC.md).
 
-## Run from source
+## Build and run
 
-Target: Kubuntu 26.04, Firefox or Chromium, one local user and one active machine.
-Rust 1.89 or newer, Node.js 22.12+ and a C compiler are required. Tested build:
-Rust 1.98.1, Node 22.22.1, npm 9.2.0 on Ubuntu 26.04.1 LTS.
+Target: Kubuntu 26.04, Firefox/Chromium, one local user and one active machine.
+Install Rust 1.89+, Node.js 22.12+, npm, a C compiler and Linux build tools.
+Dependencies are pinned in Cargo.lock and frontend/package-lock.json.
 
 ```sh
-cd frontend
-npm ci --ignore-scripts
-npm run check
-npm run build
-cd ..
+git clone https://github.com/richardnoragon/brickxinator.git
+cd brickxinator
+git switch alpha-foundation
+npm --prefix frontend ci --ignore-scripts
+npm --prefix frontend run check
+npm --prefix frontend run build
 cargo test --workspace --locked
 cargo build --release --locked
 bash scripts/brickxinator
 ```
 
-The launcher opens a local browser service, reuses an existing instance for the
-same data directory, and exits after 90 seconds without active app tabs. Crashed
-tabs expire after 30 seconds. The default data directory is
-`$XDG_DATA_HOME/brickxinator` or `~/.local/share/brickxinator`; override it with
-`--data-dir /absolute/local/path`. Keep the checkout and built assets together.
+The native launcher uses `$XDG_DATA_HOME/brickxinator` or
+`~/.local/share/brickxinator`; override with `--data-dir /absolute/local/path`.
+It opens the default browser, reuses an instance for that collection, and exits
+90 seconds after active app tabs disappear. Keep built assets with the checkout.
 
-## Alpha workflows
-
-- Save incomplete purchase drafts with seller/type/country/date, order reference,
-  informational tax, notes, item notes/source URLs, paid EUR totals and shipping.
-  Receive the whole purchase exactly once. Unknown copy counts create no invented
-  physical copies; stated box counts never become detailed part stock.
-- Manage part/set definitions, manufacturers, colors, conditions and nested storage.
-  Protected Unknown values remain stable. Link existing holdings/copies to catalog
-  records and move whole holdings or copies without changing quantities.
-- Find stock using text/numbers, storage/subtrees, availability, managed attributes,
-  seller and purchase dates. Pagination totals cover every match. Archive hides
-  daily-list clutter while the dashboard retains ownership totals.
-- Identify mixed-lot children without duplicating source stock. Close physically
-  empty residue explicitly and reopen without fabricating measured zero.
-- Verify set contents with absolute observations, expected checklists, explicit
-  line/overall completion and independent assembly state. Reusable definition
-  checklists create no stock. Rename copies, correct line identity, retire/restore
-  checklist lines, and review fresh recounts after stock adjustments.
-- Record Broken, Lost, Donated, Sold and Correction actions on part holdings,
-  with independent piece/weight and damaged-subset measurements and audit reasons.
-  Preview received-purchase corrections against current residual stock, preserve
-  classified children, reject negative outcomes, and reconcile newly discovered copies.
-- Upload/paste managed images and PDF documents. Originals remain unchanged;
-  generated paths, MIME signatures, byte counts, hashes and target associations
-  are validated. Archive preserves attachments. Eligible never-received drafts
-  without lines or attachments can be permanently purged, including entered metadata.
-- Allocate shipping using Purchase Level, Equal, Price Proportional, Piece Count,
-  Weight or Manual. Exact cents reconcile deterministically; incomplete manual
-  drafts stay incomplete. Paid prices never change through allocation. View exact
-  unit rates with selectable precision and per-definition purchase-price history.
-- Export native versioned JSON/assets or human inventory CSV. Native import stages
-  and validates an entire collection, initializes a fresh collection, treats an
-  identical re-import as a no-op, and rejects implicit merging/conflicting data.
-
-## Persistence and recovery
-
-Rust/Axum serves a Svelte/TypeScript interface with local assets. The API binds
-127.0.0.1 and checks Host, Origin and per-process mutation tokens. No login, LAN
-service, telemetry or cloud integration is implemented. Audit actors come from
-the local service user's environment. Large read integers use decimal strings
-where JavaScript would otherwise round them.
-
-SQLite uses WAL, foreign keys, FULL synchronous mode and FTS5. UUIDv7 entities and
-immutable typed movement/audit history drive current stock. Opening validates
-migration checksums, audit chains, journal replay and relational references.
-Migrations 001–012 are immutable; known older prefixes remain readable through
-their supported features. Explicit upgrades create validated safety ZIPs first.
-
-Full ZIP snapshots contain a consistent database, referenced assets and optional
-configuration, with versioned manifests and hashes. Restore validates before
-replacement, creates a safety ZIP for undo, coordinates through OS file locks and
-uses a durable rollback journal. Interrupted restore blocks normal opens until
-`recover`. Restored machine configuration is placed separately and stays inactive.
-
-Daily protection requires a full validated ZIP **and** successful external Restic
-backup/check/retention. Separate monthly ZIPs restore without Restic. Defaults are
-`<initial working directory>/backups/daily` and `backups/montly` (requested spelling),
-editable in Recovery. Destinations start disabled. External drives/network shares
-require exact mount points. Thirty daily recovery points and twelve monthly ZIPs
-are retained. The opt-in systemd user timer runs independently of the browser,
-checking configurable local schedules and missed-work catch-up. See [INSTALL.md](INSTALL.md).
-
-## Verification and limits
+For the Linux Docker preview, build the frontend and release binary first:
 
 ```sh
-cargo fmt --all --check
+docker compose up --build -d
+docker compose ps
+```
+
+Open [the local app](http://127.0.0.1:4217). The container uses host networking,
+UID 1000, and separate persistent data/backup volumes. It stays running between
+browser sessions. `docker compose down` retains data; `down --volumes` deletes it.
+This locally built preview is not a published portable installer/image.
+
+## Implemented workflows
+
+- Purchase drafts, partial receipts, manual shipments, backorders, receipt
+  reversals and independent warranties. Only genuine receipts create ownership;
+  unknown copy counts create no invented identities or detailed parts.
+- Supplier return plans, actual dispatch, acknowledgment and safe corrections.
+  Dispatch removes selected ownership once; acknowledgment/refunds do not repeat
+  it. Merged stock returns require explicit acquisition-source quantities.
+- Append-only copy lifecycle events: Sold, Donated, Lost, Stolen, Destroyed, Void
+  and Returned. UUIDs survive. Explicit linked-part handling supports all/custom
+  transfer or retention, with conflict-checked correction to Active.
+- Physical holding splits/compatible merges, source layers, loose-stock
+  detachment, damage, classification, catalog links, independent storage,
+  search and dashboards. Unknown count/weight remains distinct from zero.
+- Versioned projects for official sets, MOCs, layouts, dioramas and custom work.
+  Reservations, allocations, verified readiness, explicit Start Build conversion,
+  progress-only bags/subassemblies and evidence-aware shortages work offline.
+- Separate gross amounts, discounts/coupons, payments and refunds. Recorded paid
+  totals remain intact. Four automatic financial line-allocation methods use
+  exact cents; gift cards/vouchers settle payments without reducing cost again.
+- Seven shipping modes including Volume, separate fees, Manual/Piece Count
+  acquisition-cost allocation to holdings/copies, shared source budgets,
+  residual/disposed cost, reviewed reallocations and non-duplicating cost rollups.
+- Reviewed LDraw/MPD, Studio-export CSV/TSV and Rebrickable catalog/BOM/color/theme
+  files. Local source caches, UUID-preserving field updates, theme links, local
+  catalog images, attributed price observations, explicit BrickLink mappings,
+  Wanted List XML and collection/project CSV/Markdown exports.
+- Managed images/PDFs, current-schema native JSON/assets exchange, validated ZIP
+  snapshots, checked upgrades, interrupted-restore recovery and Restic protection.
+
+Physical holdings are ownership. Assignments reserve stock independently of
+assembly/location. Verification is separate from planning coverage. Legacy set
+checklists and new project allocations still have some integration limits;
+[ALPHA_STATUS](ALPHA_STATUS.md) records the remaining acceptance work.
+
+## Persistence and backup
+
+Rust/Axum serves locally built Svelte assets on 127.0.0.1. Host/Origin checks,
+mutation tokens and local-user audit attribution apply. No login, LAN exposure,
+telemetry or required cloud service is implemented. Exact large integers remain
+readable without JavaScript rounding.
+
+SQLite WAL, foreign keys and immutable typed histories are authoritative;
+search/rollups are derived. Migrations 001–018 are immutable. Upgrades create a
+validated safety snapshot; use the documented coordinator, not manual DDL edits
+or a raw copy of a live database. Native import accepts a fresh collection or an
+identical no-op, not an implicit merge of collections.
+
+Daily protection uses a validated ZIP plus external Restic backup/check/retention;
+monthly full ZIPs restore independently. Retention is 30 daily / 12 monthly.
+Defaults are `<initial working directory>/backups/daily` and `backups/montly`
+(requested spelling), editable in Recovery and disabled initially. External/NAS
+backup destinations require exact mounts; the live database stays local. Docker
+contains Restic but does not configure an independent scheduler. See [INSTALL](INSTALL.md).
+
+## Verification and boundaries
+
+```sh
+cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
+cargo build --locked
 npm --prefix frontend run format:check
 npm --prefix frontend run check
 npm --prefix frontend run build
+npm --prefix frontend run test:browser
 ```
 
-The [evidence checklist](ALPHA_STATUS.md) records actual Rust, Chromium/Firefox,
-launcher, migration, recovery and Restic drill results. The real backup drill
-restores every retained daily point and every monthly ZIP, including attachments
-and inactive configuration review. On the small measured fixture, compressed-ZIP
-repository overhead exceeded the retained ZIP inputs; no storage-saving forecast
-or large-collection capacity claim is made. Snapshots hold a maintenance gate;
-requests may need retrying during maintenance. Review [dependency findings](THIRD_PARTY.md).
+Latest feature evidence: **184 Rust tests and 18 Chromium/Firefox scenarios**.
+Earlier process/Restic drills and supported-desktop limits are dated separately
+in [ALPHA_STATUS](ALPHA_STATUS.md). Dependency/advisory evidence in
+[THIRD_PARTY](THIRD_PARTY.md) retains its actual review date.
 
-Whole-set disposal is explicitly deferred; archiving never removes ownership.
-Copy-count corrections cannot delete existing physical copy identities. Partial
-receipts/reversal, arbitrary batch splitting, set-content relocation, child-lot
-cost allocation, net-price reconstruction, aftercare/returns, reservations, CAD,
-MOCs, external market data and online imports remain deferred. Native v1 import
-initializes a fresh collection rather than merging into an existing collection.
-Image/PDF uploads are limited to 64 MiB; browser archive requests to 512 MiB.
-Larger supported archives can use the CLI, within documented extraction limits.
+Imports currently accept scoped, decompressed text files up to 4 MiB. Unknown
+mixed-source quantities may block returns; a dedicated provenance-reconciliation
+editor remains open. Audited definition reassignment, old/new completeness
+integration, project priority/footprint refinements and richer Obsidian packaging
+also need further work. Native Studio `.io`, CAD/render/instruction editing,
+per-piece assembly, live sync/ordering/price feeds, online catalog/image fetching,
+Obsidian import, Kubuntu packages and multi-user/cloud operation are deferred.
 
-Richard's candidate review on the supported desktop, private security reporting
-(explicitly deferred) and community reporting setup remain release gates.
+Richard's supported-desktop review, release approval and reporting/community
+contacts remain gates. Archiving retains ownership; syncing a review branch is
+not a release. Public repository: [richardnoragon/brickxinator](https://github.com/richardnoragon/brickxinator).

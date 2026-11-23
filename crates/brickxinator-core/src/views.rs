@@ -39,6 +39,12 @@ pub struct Named {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InventoryRow {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifecycle: Option<crate::physical::Status>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub general_available_pieces: Option<Measure>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub general_available_weight_mg: Option<Measure>,
     #[serde(default)]
     pub archived: bool,
     pub target: Target,
@@ -74,8 +80,13 @@ impl InventoryRow {
         match filter {
             Availability::InAssembledSet => self.assembly != AssemblyState::Loose,
             Availability::Available => self.holding.is_some_and(|h| {
-                positive(h.pieces.available(h.assembly))
-                    || positive(h.weight_mg.available(h.assembly))
+                positive(
+                    self.general_available_pieces
+                        .unwrap_or_else(|| h.pieces.available(h.assembly)),
+                ) || positive(
+                    self.general_available_weight_mg
+                        .unwrap_or_else(|| h.weight_mg.available(h.assembly)),
+                )
             }),
             Availability::BrokenDamaged => self
                 .holding
@@ -125,13 +136,18 @@ pub struct StockTotals {
     pub damaged_weight_mg: Coverage,
 }
 impl StockTotals {
-    fn add(&mut self, h: Holding) {
+    fn add(&mut self, h: Holding, row: &InventoryRow) {
         self.holdings += 1;
         self.owned_pieces.add(h.pieces.owned());
         self.owned_weight_mg.add(h.weight_mg.owned());
-        self.available_pieces.add(h.pieces.available(h.assembly));
-        self.available_weight_mg
-            .add(h.weight_mg.available(h.assembly));
+        self.available_pieces.add(
+            row.general_available_pieces
+                .unwrap_or_else(|| h.pieces.available(h.assembly)),
+        );
+        self.available_weight_mg.add(
+            row.general_available_weight_mg
+                .unwrap_or_else(|| h.weight_mg.available(h.assembly)),
+        );
         self.damaged_pieces.add(h.pieces.damaged());
         self.damaged_weight_mg.add(h.weight_mg.damaged());
     }
@@ -152,18 +168,22 @@ impl InventoryTotals {
             self.incomplete_records += 1;
         }
         match row.target {
-            Target::SetCopy(_) => self.known_set_copies += 1,
+            Target::SetCopy(_)
+                if row.lifecycle.unwrap_or_default() == crate::physical::Status::Active =>
+            {
+                self.known_set_copies += 1
+            }
             Target::UnquantifiedSetLine(_) => self.unquantified_set_lines += 1,
             _ => {}
         }
         if let Some(h) = row.holding {
-            self.all.add(h);
+            self.all.add(h, row);
             if row.kind == Kind::MixedLot {
-                self.unidentified_lots.add(h);
+                self.unidentified_lots.add(h, row);
             } else if row.definition_id.is_some() {
-                self.catalog_linked.add(h);
+                self.catalog_linked.add(h, row);
             } else {
-                self.other_holdings.add(h);
+                self.other_holdings.add(h, row);
             }
         }
     }
@@ -171,6 +191,8 @@ impl InventoryTotals {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Search {
+    #[serde(default)]
+    pub include_inactive: bool,
     pub assembly: Option<AssemblyState>,
     pub archived: Option<bool>,
     pub text: String,
@@ -193,6 +215,7 @@ pub struct Search {
 impl Default for Search {
     fn default() -> Self {
         Self {
+            include_inactive: false,
             assembly: None,
             archived: None,
             text: String::new(),

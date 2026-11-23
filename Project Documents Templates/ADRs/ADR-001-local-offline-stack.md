@@ -1,5 +1,7 @@
 # ADR-001: Local offline stack and ownership
 
+> Historical decision record: [ADR-023](ADR-023-expanded-alpha-ledgers-and-enrichment.md) supersedes expanded-alpha scope/stock/fulfilment/cost/enrichment assumptions where they differ. Original reasoning and evidence dates are retained.
+
 Date: 2026-10-31. Status: Accepted user choice. Source decisions: D-086, D-092, D-118.
 
 ## Context

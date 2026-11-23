@@ -55,6 +55,30 @@ pub(crate) const MIGRATIONS: &[(&str, &str)] = &[
         "migration_012.sql",
         include_str!("../../../migrations/migration_012.sql"),
     ),
+    (
+        "migration_013.sql",
+        include_str!("../../../migrations/migration_013.sql"),
+    ),
+    (
+        "migration_014.sql",
+        include_str!("../../../migrations/migration_014.sql"),
+    ),
+    (
+        "migration_015.sql",
+        include_str!("../../../migrations/migration_015.sql"),
+    ),
+    (
+        "migration_016.sql",
+        include_str!("../../../migrations/migration_016.sql"),
+    ),
+    (
+        "migration_017.sql",
+        include_str!("../../../migrations/migration_017.sql"),
+    ),
+    (
+        "migration_018.sql",
+        include_str!("../../../migrations/migration_018.sql"),
+    ),
 ];
 
 pub struct Store {
@@ -132,6 +156,7 @@ impl Store {
             _lease: lease,
         };
         store.rebuild()?;
+        crate::project_store::validate_current(&store.connection, &load(&store.connection)?)?;
         crate::purge::validate(&store.connection)?;
         if has_settings(&store.connection)? {
             store.settings()?;
@@ -153,7 +178,15 @@ impl Store {
         let mut ledger = load(&tx)?;
         if matches!(
             operation.body,
-            Body::Receive { .. }
+            Body::SupplierReturn { .. }
+                | Body::SupplierReturnCorrection { .. }
+                | Body::Delivery { .. }
+                | Body::ReceiptCorrection { .. }
+                | Body::Split { .. }
+                | Body::Merge { .. }
+                | Body::Detach { .. }
+                | Body::Lifecycle(_)
+                | Body::Receive { .. }
                 | Body::AddCopies { .. }
                 | Body::Verify { .. }
                 | Body::Stock { .. }
@@ -327,6 +360,11 @@ pub(crate) fn load(connection: &Connection) -> Result<Ledger> {
     if has_stock_actions(connection)? {
         crate::stock_store::validate(connection, &ledger)?;
     }
+    crate::physical_store::validate(connection, &ledger)?;
+    crate::fulfilment_store::validate(connection, &ledger)?;
+    crate::child_cost_store::validate(connection, &ledger)?;
+    crate::integration_store::validate(connection)?;
+    crate::enrichment_store::load(connection)?;
     Ok(ledger)
 }
 
@@ -344,6 +382,7 @@ pub(crate) fn persist_operation(
     operation: &Operation,
     outcome: &Outcome,
 ) -> Result<()> {
+    crate::project_store::validate_current(connection, ledger)?;
     let mut created = Vec::new();
     for id in outcome.holdings.keys() {
         let exists: bool = connection.query_row(
@@ -371,7 +410,17 @@ pub(crate) fn persist_operation(
         for id in &created {
             if let Some(line_id) = ledger.provenance().get(id) {
                 let parent = match operation.body {
-                    Body::Identify { source_id, .. } => Some(source_id.to_string()),
+                    Body::Identify { source_id, .. } | Body::Split { source_id, .. } => {
+                        Some(source_id.to_string())
+                    }
+                    Body::Lifecycle(ref e) => e.parts.iter().find_map(|p| match p.handling {
+                        brickxinator_core::physical::Handling::Custom { child_id, .. }
+                            if child_id == *id =>
+                        {
+                            Some(p.holding_id.to_string())
+                        }
+                        _ => None,
+                    }),
                     _ => None,
                 };
                 connection.execute("INSERT INTO stock_provenance(holding_id,invoice_line_id,parent_holding_id) VALUES(?1,?2,?3)", params![id.to_string(), line_id.to_string(), parent])?;
@@ -402,7 +451,12 @@ pub(crate) fn has_settings(connection: &Connection) -> Result<bool> {
     )?)
 }
 pub(crate) fn metadata_key_exists(connection: &Connection, key: &str) -> Result<bool> {
-    Ok(catalog_key_exists(connection, key)?
+    Ok(crate::enrichment_store::key_exists(connection, key)?
+        || crate::integration_store::key_exists(connection, key)?
+        || crate::child_cost_store::key_exists(connection, key)?
+        || crate::fulfilment_store::key_exists(connection, key)?
+        || crate::project_store::key_exists(connection, key)?
+        || catalog_key_exists(connection, key)?
         || has_settings(connection)?
             && connection.query_row(
                 "SELECT EXISTS(SELECT 1 FROM settings_command WHERE request_key=?1)",
@@ -471,7 +525,12 @@ pub(crate) fn has_attachments(connection: &Connection) -> Result<bool> {
     )?)
 }
 pub(crate) fn attachment_key_exists(connection: &Connection, key: &str) -> Result<bool> {
-    Ok(crate::purge::key_exists(connection, key)?
+    Ok(crate::enrichment_store::key_exists(connection, key)?
+        || crate::integration_store::key_exists(connection, key)?
+        || crate::child_cost_store::key_exists(connection, key)?
+        || crate::fulfilment_store::key_exists(connection, key)?
+        || crate::project_store::key_exists(connection, key)?
+        || crate::purge::key_exists(connection, key)?
         || has_attachments(connection)?
             && connection.query_row(
                 "SELECT EXISTS(SELECT 1 FROM attachment_command WHERE request_key=?1)",

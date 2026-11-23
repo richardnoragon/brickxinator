@@ -80,6 +80,9 @@ pub fn valid_date(value: &str) -> bool {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct InvoiceLine {
+    /// Explicit total packaged volume for this invoice line, in millilitres.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub volume_ml: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_url: Option<String>,
     #[serde(default, skip_serializing_if = "String::is_empty")]
@@ -99,6 +102,10 @@ pub struct InvoiceLine {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Draft {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fees_cents: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shipping_method: Option<crate::finance::Method>,
     pub seller: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seller_type: Option<SellerType>,
@@ -148,11 +155,11 @@ impl Draft {
 
     /// EUR only for alpha. Incomplete amounts stay unknown, including shipping.
     pub fn total_cents(&self) -> Option<u64> {
-        self.lines
-            .iter()
-            .try_fold(self.shipping_cents?, |total, line| {
-                total.checked_add(line.paid_total_cents?)
-            })
+        self.lines.iter().try_fold(
+            self.shipping_cents?
+                .checked_add(self.fees_cents.unwrap_or(0))?,
+            |total, line| total.checked_add(line.paid_total_cents?),
+        )
     }
 }
 
