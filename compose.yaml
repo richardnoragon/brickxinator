@@ -1,0 +1,20 @@
+services:
+  brickxinator:
+    image: brickxinator:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.local
+    # Linux only. The application binds 127.0.0.1 and validates that origin.
+    network_mode: host
+    init: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - brickxinator-data:/data
+      - brickxinator-backups:/app/backups
+volumes:
+  brickxinator-data:
+  brickxinator-backups:

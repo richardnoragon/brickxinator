@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Install only when explicitly invoked by the local user.
+set -euo pipefail
+project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+binary="$project_dir/target/release/brickxinator-app"
+data_dir="${1:-${XDG_DATA_HOME:-$HOME/.local/share}/brickxinator}"
+if [[ ! -x "$binary" ]]; then echo 'Build the release binary first.' >&2; exit 1; fi
+if [[ "$project_dir$data_dir" == *$'\n'* || "$project_dir$data_dir" == *'"'* || "$project_dir$data_dir" == *\\* ]]; then
+  echo 'Timer paths cannot contain newlines, double quotes or backslashes.' >&2; exit 1
+fi
+mkdir -p -- "$data_dir"
+data_dir="$(cd -- "$data_dir" && pwd)"
+"$binary" backup-init --data-dir "$data_dir"
+unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+mkdir -p -- "$unit_dir"
+# systemd expands percent specifiers even inside quotes.
+escaped_binary="${binary//%/%%}"
+escaped_data="${data_dir//%/%%}"
+escaped_binary="${escaped_binary//\$/\$\$}"
+escaped_data="${escaped_data//\$/\$\$}"
+cat > "$unit_dir/brickxinator-backup.service" <<EOF
+[Unit]
+Description=Brickxinator daily and monthly backup catch-up
+[Service]
+Type=oneshot
+ExecStart="$escaped_binary" backup-run --data-dir "$escaped_data"
+UMask=0077
+TimeoutStartSec=3h
+Nice=10
+EOF
+cat > "$unit_dir/brickxinator-backup.timer" <<'EOF'
+[Unit]
+Description=Check Brickxinator local backup schedules every five minutes
+[Timer]
+OnCalendar=*-*-* *:0/5:00
+Persistent=true
+RandomizedDelaySec=15
+[Install]
+WantedBy=timers.target
+EOF
+systemctl --user daemon-reload
+systemctl --user enable --now brickxinator-backup.timer
+echo 'Timer enabled. Enable destinations in Recovery settings after checking paths and Restic.'
+echo 'The timer runs while logged in even when the Brickxinator window is closed.'

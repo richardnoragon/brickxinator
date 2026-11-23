@@ -1,0 +1,24 @@
+[package]
+name = "brickxinator-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+brickxinator-core = { path = "../brickxinator-core" }
+brickxinator-infra = { path = "../brickxinator-infra" }
+axum = { version = "=0.8.9", features = ["multipart"] }
+tokio = { version = "=1.54.1", features = ["full"] }
+tower-http = { version = "=0.6.11", features = ["fs", "set-header"] }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+tempfile = "=3.27.0"
+tower = {version="=0.5.3",features=["util"]}
+
+[dev-dependencies]
+tower = { version = "=0.5.3", features = ["util"] }
+tempfile = "=3.27.0"

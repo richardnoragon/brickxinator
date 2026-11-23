@@ -1,0 +1,11 @@
+# Local preview: first build the binary and frontend on Ubuntu/Kubuntu 26.04.
+FROM ubuntu:26.04
+RUN apt-get update && apt-get install -y --no-install-recommends libgcc-s1 ca-certificates curl restic && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /data /app/frontend /app/backups && chown -R 1000:1000 /data /app
+COPY target/release/brickxinator-app /usr/local/bin/brickxinator-app
+COPY frontend/dist/ /app/frontend/
+WORKDIR /app
+USER 1000:1000
+HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 CMD curl --fail --silent http://127.0.0.1:4217/api/v1/health || exit 1
+ENTRYPOINT ["brickxinator-app"]
+CMD ["serve", "--data-dir", "/data", "--assets", "/app/frontend", "--port", "4217", "--idle-seconds", "315360000"]
