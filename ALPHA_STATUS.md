@@ -1,8 +1,13 @@
 # Alpha completion audit
 
 Target: 0.1.0-alpha.1. This is an implementation candidate, not a released tag.
-Validation evidence recorded on 2026-11-01 using disposable data.
-Scope was expanded on 2026-11-22; the new lifecycle/allocation/build-planning work is not covered by that evidence. Implementation commit:
+Current expanded implementation and reconciled documentation:
+[`a91a405`](https://github.com/richardnoragon/brickxinator/commit/a91a405),
+schema 18, reviewed through [draft PR #1](https://github.com/richardnoragon/brickxinator/pull/1).
+The latest checkpoint below records expanded-scope validation and remaining limits.
+
+Historical baseline validation was recorded on 2026-11-01 using disposable data.
+That evidence alone does not cover the scope expanded on 2026-11-22. Baseline implementation commit:
 [`c1551b5`](https://github.com/richardnoragon/brickxinator/commit/c1551b5).
 
 ## Historical baseline checklist
